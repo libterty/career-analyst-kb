@@ -1,0 +1,85 @@
+### --- Python 相關 --- ###
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虛擬環境 (你截圖中的 venv 資料夾)
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+### --- 專案特定資料 (Data & Docs) --- ###
+# 原始文件與處理後的資料通常很大，且包含敏感資訊，不建議進 Git
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# 如果你有本地的向量數據庫持久化檔案 (若 Docker 掛載到本地)
+# milvus_data/
+# volumes/
+
+### --- 環境變數與密鑰 (極度重要) --- ###
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 排除所有可能包含 API Key 的檔案
+*.pem
+*.key
+*.secret
+
+### --- 規劃文件 --- ###
+.planning/*
+
+### --- 編輯器與系統相關 --- ###
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.log
+
+### --- 測試與分析 --- ###
+.target/
+.pytest_cache/
+.coverage
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+.results/
+
+# 忽略 data 資料夾下所有內容
+data/raw/*
+data/processed/*
+data/embeddings/*
+
+
+!data/processed/.gitkeep
+!data/raw/.gitkeep
+!data/embeddings/.gitkeep

@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>道輝 — 一貫道知識庫</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    /* ── Message bubbles ── */
+    .msg-user   { background: #e3f2fd; align-self: flex-end; }
+    .msg-bot    { background: #f3f4f6; align-self: flex-start; }
+    .msg-bubble { max-width: 80%; padding: 0.75rem 1rem; border-radius: 1rem; margin: 0.25rem 0; }
+
+    /* ── Markdown 渲染樣式 ── */
+    .msg-bot p  { margin: 0.4em 0; }
+    .msg-bot p:first-child { margin-top: 0; }
+    .msg-bot p:last-child  { margin-bottom: 0; }
+    .msg-bot strong { font-weight: 600; }
+    .msg-bot ul, .msg-bot ol { margin: 0.4em 0 0.4em 1.2em; padding: 0; }
+    .msg-bot li { margin: 0.2em 0; }
+    .msg-bot h1, .msg-bot h2, .msg-bot h3 { font-weight: 600; margin: 0.6em 0 0.2em; }
+    .msg-bot code { background: #e5e7eb; border-radius: 3px; padding: 0.1em 0.3em; font-size: 0.85em; }
+    .msg-bot pre  { background: #e5e7eb; border-radius: 6px; padding: 0.6em 0.8em; overflow-x: auto; margin: 0.4em 0; }
+    .msg-bot pre code { background: none; padding: 0; }
+    #chat-box   { scrollbar-width: thin; }
+
+    /* ── Typing indicator ── */
+    .typing-dot { animation: blink 1.2s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100% { opacity:0 } 40% { opacity:1 } }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 260px;
+      min-width: 260px;
+      background: #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 12px;
+      border-bottom: 1px solid #333;
+    }
+
+    #newChatBtn {
+      width: 100%;
+      padding: 10px 14px;
+      background: transparent;
+      color: #e0e0e0;
+      border: 1px dashed #555;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    #newChatBtn:hover {
+      background: #2a2a2a;
+      border-color: #888;
+    }
+
+    .session-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 6px;
+      scrollbar-width: thin;
+      scrollbar-color: #444 transparent;
+    }
+
+    .session-item {
+      padding: 9px 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 0.12s;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 2px;
+      position: relative;
+    }
+    .session-item:hover {
+      background: #2d2d2d;
+    }
+    .session-item.active {
+      background: #2a3a5c;
+      border-left: 3px solid #f59e0b;
+      padding-left: 7px;
+    }
+    .session-title {
+      font-size: 13px;
+      color: #d0d0d0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 185px;
+    }
+    .session-item.active .session-title {
+      color: #ffffff;
+    }
+    .session-time {
+      font-size: 11px;
+      color: #666;
+    }
+    .session-actions {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      gap: 2px;
+      align-items: center;
+    }
+    .session-item:hover .session-actions {
+      display: flex;
+    }
+    .session-rename-btn, .session-delete-btn {
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .session-rename-btn:hover {
+      color: #f59e0b;
+      background: rgba(255,255,255,0.1);
+    }
+    .session-delete-btn:hover {
+      color: #ef4444;
+      background: rgba(255,255,255,0.1);
+    }
+    .session-rename-input {
+      font-size: 13px;
+      background: #333;
+      color: #fff;
+      border: 1px solid #f59e0b;
+      border-radius: 4px;
+      padding: 2px 6px;
+      width: 185px;
+      outline: none;
+    }
+
+    .sidebar-footer {
+      padding: 10px 12px;
+      border-top: 1px solid #333;
+      color: #888;
+      font-size: 12px;
+    }
+
+    /* ── Session counter ── */
+    #session-counter {
+      display: none;
+      font-size: 11px;
+      color: #666;
+      margin-top: 6px;
+      text-align: center;
+    }
+    #session-counter.at-limit {
+      color: #ef4444;
+      font-weight: 600;
+    }
+    #session-counter-bar {
+      height: 3px;
+      background: #333;
+      border-radius: 2px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    #session-counter-fill {
+      height: 100%;
+      background: #f59e0b;
+      border-radius: 2px;
+      transition: width 0.3s, background 0.3s;
+    }
+
+    /* ── FAQ section inside sidebar (shown only when logged in) ── */
+    .sidebar-section-title {
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 10px 10px 4px;
+    }
+
+    /* ── Limit banner ── */
+    #limit-banner {
+      background: #fee2e2;
+      border-bottom: 1px solid #fca5a5;
+      color: #b91c1c;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    /* ── Upload area ── */
+    .upload-area {
+      border: 2px dashed #555;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .upload-area:hover { border-color: #f59e0b; color: #ccc; }
+
+    /* ── Feedback buttons ── */
+    .feedback-bar {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      align-items: center;
+    }
+    .feedback-btn {
+      background: none;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 14px;
+      cursor: pointer;
+      color: #6b7280;
+      transition: background 0.15s, border-color 0.15s;
+      line-height: 1.5;
+    }
+    .feedback-btn:hover { background: #f3f4f6; border-color: #9ca3af; }
+    .feedback-btn.active-up   { background: #dcfce7; border-color: #16a34a; color: #15803d; }
+    .feedback-btn.active-down { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
+    .feedback-label {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-left: 2px;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col" style="height:100vh;overflow:hidden;">
+
+  <!-- Header -->
+  <header class="bg-amber-700 text-white px-6 py-3 flex items-center gap-3 shadow-md flex-shrink-0">
+    <div class="text-3xl">☯</div>
+    <div>
+      <h1 class="text-xl font-bold tracking-wide">道輝 — 一貫道知識庫</h1>
+      <p class="text-xs opacity-80">一貫道典籍智慧問答系統</p>
+    </div>
+    <div class="ml-auto flex gap-2 items-center">
+      <span id="login-status" class="text-xs opacity-80">未登入</span>
+      <button id="login-btn" onclick="showLogin()"
+        class="px-3 py-1 bg-amber-800 hover:bg-amber-900 rounded text-sm transition">登入</button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar hidden md:flex flex-col">
+
+      <!-- New Chat Button -->
+      <div class="sidebar-header">
+        <button id="newChatBtn" onclick="createNewSession()">
+          <span style="font-size:18px;line-height:1;">+</span>
+          新對話
+        </button>
+        <div id="session-counter">
+          <span id="session-counter-text"></span>
+          <div id="session-counter-bar"><div id="session-counter-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- Session List -->
+      <div id="sessionList" class="session-list">
+        <!-- Sessions rendered dynamically -->
+        <div class="sidebar-section-title" id="sessionSectionLabel" style="display:none;">最近對話</div>
+      </div>
+
+      <!-- FAQ Quick Links -->
+      <div id="faq-section" style="display:none;">
+        <div class="sidebar-section-title">常見問題</div>
+        <div style="padding:0 6px 6px;">
+          <button onclick="askQuestion('什麼是三寶？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">什麼是三寶</button>
+          <button onclick="askQuestion('十條大願的內容是什麼？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">十條大願的內容</button>
+          <button onclick="askQuestion('求道的意義與過程為何？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">求道的意義與過程</button>
+          <button onclick="askQuestion('一貫道的五倫八德是什麼？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">五倫八德</button>
+          <button onclick="askQuestion('佛堂的規矩與禮儀有哪些？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">佛堂規矩與禮儀</button>
+        </div>
+      </div>
+
+      <!-- File Upload -->
+      <div id="upload-section" style="display:none;padding:8px 10px;border-top:1px solid #333;">
+        <div class="sidebar-section-title" style="padding:4px 0 6px;">文件上傳</div>
+        <label class="block cursor-pointer upload-area">
+          點擊上傳 PDF/DOCX<br/><span class="opacity-60">最大 50MB</span>
+          <input id="file-input" type="file" accept=".pdf,.docx,.doc" class="hidden" onchange="uploadFile(event)" />
+        </label>
+        <div id="upload-status" class="text-xs mt-2 text-gray-400 hidden"></div>
+      </div>
+
+      <!-- Sidebar Footer: User Info -->
+      <div class="sidebar-footer">
+        <span id="sidebar-user">請先登入</span>
+      </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- Message limit banner（超限時顯示，紅色） -->
+      <div id="limit-banner" style="display:none;">
+        <span>已達訊息上限（每個對話最多 50 輪問答），請開新對話繼續提問。</span>
+        <button onclick="createNewSession()" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition flex-shrink-0">新對話</button>
+      </div>
+
+      <div id="chat-box" class="flex-1 overflow-y-auto p-6 flex flex-col gap-2">
+        <!-- Welcome message -->
+        <div class="msg-bubble msg-bot shadow-sm">
+          <p class="text-gray-800">南無阿彌陀佛，歡迎來到道輝知識庫。☯</p>
+          <p class="text-gray-600 text-sm mt-1">您可以詢問有關一貫道教義、典籍內容或修行方法的問題。</p>
+        </div>
+      </div>
+
+      <!-- Sources bar -->
+      <div id="sources-bar" class="hidden px-6 py-2 bg-yellow-50 border-t border-yellow-200 text-xs text-yellow-800">
+        <strong>參考來源：</strong><span id="sources-content"></span>
+      </div>
+
+      <!-- Input Area -->
+      <div class="border-t border-gray-200 bg-white px-6 py-4 flex-shrink-0">
+        <div class="flex gap-3 max-w-4xl mx-auto">
+          <textarea
+            id="question-input"
+            rows="2"
+            placeholder="請輸入您的問題…"
+            class="flex-1 resize-none border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+            onkeydown="handleInputKeydown(event)"
+          ></textarea>
+          <button
+            id="send-btn"
+            onclick="sendMessage()"
+            class="px-5 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-sm font-medium transition disabled:opacity-50"
+          >發送</button>
+        </div>
+        <div class="flex justify-between items-center mt-2 max-w-4xl mx-auto">
+          <p class="text-xs text-gray-400">本系統僅供 一貫道相關人員使用</p>
+          <span id="round-counter" class="text-xs text-gray-400"></span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 w-80 shadow-2xl">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">登入系統</h2>
+      <input id="username" type="text" placeholder="用戶名" class="w-full border rounded-lg px-3 py-2 mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+      <input id="password" type="password" placeholder="密碼" class="w-full border rounded-lg px-3 py-2 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+        onkeydown="if(event.key==='Enter') login()" />
+      <div id="login-error" class="text-red-500 text-xs mb-2 hidden"></div>
+      <div class="flex gap-2">
+        <button onclick="login()" class="flex-1 bg-amber-700 hover:bg-amber-800 text-white py-2 rounded-lg text-sm transition">登入</button>
+        <button onclick="hideLogin()" class="flex-1 border py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">取消</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  marked.use({ breaks: true });
+  
+  const API_BASE = '';
+  const MAX_ROUNDS = 50;
+  let authToken = localStorage.getItem('token') || '';
+  let currentUsername = localStorage.getItem('username') || '';
+  let currentSessionId = null;
+  let isFirstMessage = true;  // track if this is the first message in current session
+  let currentMessageCount = 0; // 目前 session 的訊息數量（user + assistant 各算 1）
+  let currentMaxSessions = 20; // 使用者的 session 數量上限（從 /api/auth/me 取得）
+
+  // ── Keyboard shortcut: Ctrl+Enter or Cmd+Enter to send ──────────
+  function handleInputKeydown(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  // ── Auth ─────────────────────────────────────────────────────────
+  function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
+  function hideLogin() { document.getElementById('login-modal').classList.add('hidden'); }
+
+  async function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const form = new URLSearchParams({ username, password });
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/token`, { method: 'POST', body: form });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      authToken = data.access_token;
+      currentUsername = username;
+      localStorage.setItem('token', authToken);
+      localStorage.setItem('username', username);
+      // Fetch max_sessions from profile
+      const meRes = await fetch(`${API_BASE}/api/auth/me`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+      if (meRes.ok) {
+        const me = await meRes.json();
+        currentMaxSessions = me.max_sessions ?? 20;
+      }
+      updateLoginUI(username);
+      hideLogin();
+      // Load sessions and auto-load most recent or create new
+      await loadSessions();
+    } catch (e) {
+      document.getElementById('login-error').textContent = '用戶名或密碼錯誤';
+      document.getElementById('login-error').classList.remove('hidden');
+    }
+  }
+
+  function logout() {
+    authToken = '';
+    currentUsername = '';
+    currentSessionId = null;
+    currentMaxSessions = 20;
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    document.getElementById('login-status').textContent = '未登入';
+    document.getElementById('login-btn').textContent = '登入';
+    document.getElementById('login-btn').onclick = showLogin;
+    document.getElementById('sidebar-user').textContent = '請先登入';
+    document.getElementById('sessionList').innerHTML = '';
+    document.getElementById('sessionSectionLabel').style.display = 'none';
+    document.getElementById('faq-section').style.display = 'none';
+    document.getElementById('upload-section').style.display = 'none';
+    document.getElementById('session-counter').style.display = 'none';
+    clearChat();
+  }
+
+  function updateLoginUI(username) {
+    document.getElementById('login-status').textContent = `已登入：${username}`;
+    document.getElementById('login-btn').textContent = '登出';
+    document.getElementById('login-btn').onclick = logout;
+    document.getElementById('sidebar-user').textContent = username;
+    document.getElementById('faq-section').style.display = 'block';
+    document.getElementById('upload-section').style.display = 'block';
+  }
+
+  // ── Session counter ──────────────────────────────────────────────
+
+  function updateSessionCounter() {
+    const count = document.querySelectorAll('.session-item').length;
+    const max = currentMaxSessions;
+    const el = document.getElementById('session-counter');
+    const text = document.getElementById('session-counter-text');
+    const fill = document.getElementById('session-counter-fill');
+
+    el.style.display = 'block';
+    const atLimit = count >= max;
+    text.textContent = atLimit
+      ? `⚠️ 已達上限 ${count} / ${max} 個對話`
+      : `對話：${count} / ${max}`;
+    el.className = atLimit ? 'at-limit' : '';
+    fill.style.width = `${Math.min(100, (count / max) * 100)}%`;
+    fill.style.background = atLimit ? '#ef4444' : count / max >= 0.8 ? '#f59e0b' : '#22c55e';
+  }
+
+  // ── Sessions ─────────────────────────────────────────────────────
+
+  async function loadSessions() {
+    if (!authToken) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/sessions`, {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
+      if (!res.ok) return;
+      const sessions = await res.json();
+      renderSessionList(sessions);
+
+      if (sessions.length > 0) {
+        await loadSession(sessions[0].session_id);
+      } else {
+        await createNewSession();
+      }
+    } catch (e) {
+      console.error('Failed to load sessions:', e);
+    }
+  }
+
+  async function createNewSession() {
+    if (!authToken) { showLogin(); return; }
+    try {
+      const res = await fetch(`${API_BASE}/api/sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ title: null }),
+      });
+      if (res.status === 429) {
+        const data = await res.json();
+        alert(data.detail || '已達對話數量上限，請刪除舊對話後再建立新的。');
+        return;
+      }
+      if (!res.ok) throw new Error('Failed to create session');
+      const session = await res.json();
+      currentSessionId = session.session_id;
+      currentMessageCount = 0;
+      isFirstMessage = true;
+
+      // Prepend to session list
+      prependSessionToSidebar(session);
+      setActiveSession(session.session_id);
+      clearChat();
+      updateRoundCounter();
+    } catch (e) {
+      console.error('Failed to create session:', e);
+    }
+  }
+
+  async function loadSession(sessionId) {
+    if (!authToken) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
+      if (!res.ok) return;
+      const session = await res.json();
+      currentSessionId = session.session_id;
+      currentMessageCount = session.message_count;
+      isFirstMessage = session.message_count === 0;
+
+      setActiveSession(sessionId);
+      renderSessionMessages(session.messages);
+      updateRoundCounter();
+    } catch (e) {
+      console.error('Failed to load session:', e);
+    }
+  }
+
+  function renderSessionList(sessions) {
+    const list = document.getElementById('sessionList');
+    // Keep label
+    list.innerHTML = '';
+    const label = document.createElement('div');
+    label.className = 'sidebar-section-title';
+    label.id = 'sessionSectionLabel';
+    label.textContent = '最近對話';
+    if (sessions.length > 0) {
+      label.style.display = 'block';
+      list.appendChild(label);
+    }
+    sessions.forEach(s => {
+      list.appendChild(buildSessionItem(s));
+    });
+    updateSessionCounter();
+  }
+
+  function buildSessionItem(session) {
+    const div = document.createElement('div');
+    div.className = 'session-item';
+    div.dataset.sessionId = session.session_id;
+    div.onclick = () => loadSession(session.session_id);
+
+    const title = document.createElement('span');
+    title.className = 'session-title';
+    title.textContent = session.title || '新對話';
+
+    const time = document.createElement('span');
+    time.className = 'session-time';
+    time.textContent = formatRelativeTime(session.updated_at || session.created_at);
+
+    const actions = document.createElement('div');
+    actions.className = 'session-actions';
+
+    const renameBtn = document.createElement('button');
+    renameBtn.className = 'session-rename-btn';
+    renameBtn.title = '重新命名';
+    renameBtn.textContent = '✏️';
+    renameBtn.onclick = (e) => {
+      e.stopPropagation();
+      startRenameSession(session.session_id, title);
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'session-delete-btn';
+    deleteBtn.title = '刪除對話';
+    deleteBtn.textContent = '🗑️';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteSession(session.session_id);
+    };
+
+    actions.appendChild(renameBtn);
+    actions.appendChild(deleteBtn);
+
+    div.appendChild(title);
+    div.appendChild(time);
+    div.appendChild(actions);
+    return div;
+  }
+
+  async function startRenameSession(sessionId, titleEl) {
+    const currentTitle = titleEl.textContent;
+    const input = document.createElement('input');
+    input.className = 'session-rename-input';
+    input.value = currentTitle === '新對話' ? '' : currentTitle;
+    input.placeholder = '輸入名稱…';
+
+    titleEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    const finish = async () => {
+      const newTitle = input.value.trim();
+      const finalTitle = newTitle || currentTitle;
+      // Restore title element
+      input.replaceWith(titleEl);
+      if (newTitle && newTitle !== currentTitle) {
+        titleEl.textContent = finalTitle;
+        await doRenameSession(sessionId, finalTitle);
+      }
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(); }
+      if (e.key === 'Escape') { input.replaceWith(titleEl); }
+    });
+    input.addEventListener('blur', finish);
+  }
+
+  async function doRenameSession(sessionId, title) {
+    try {
+      await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ title }),
+      });
+    } catch (e) {
+      console.error('Failed to rename session:', e);
+    }
+  }
+
+  async function deleteSession(sessionId) {
+    if (!confirm('確定要刪除這個對話嗎？')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
+      if (!res.ok) throw new Error('Failed to delete session');
+      // Remove from sidebar
+      const item = document.querySelector(`.session-item[data-session-id="${sessionId}"]`);
+      if (item) item.remove();
+      updateSessionCounter();
+      // If deleted current session, clear chat and create new
+      if (sessionId === currentSessionId) {
+        currentSessionId = null;
+        clearChat();
+        const remaining = document.querySelectorAll('.session-item');
+        if (remaining.length > 0) {
+          await loadSession(remaining[0].dataset.sessionId);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to delete session:', e);
+    }
+  }
+
+  function prependSessionToSidebar(session) {
+    const list = document.getElementById('sessionList');
+    // Ensure label exists
+    let label = document.getElementById('sessionSectionLabel');
+    if (!label) {
+      label = document.createElement('div');
+      label.className = 'sidebar-section-title';
+      label.id = 'sessionSectionLabel';
+      label.textContent = '最近對話';
+      list.prepend(label);
+    }
+    label.style.display = 'block';
+
+    const item = buildSessionItem(session);
+    // Insert after label
+    label.after(item);
+    updateSessionCounter();
+  }
+
+  function setActiveSession(sessionId) {
+    document.querySelectorAll('.session-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.sessionId === sessionId);
+    });
+  }
+
+  function updateSidebarSessionTitle(sessionId, title) {
+    const item = document.querySelector(`.session-item[data-session-id="${sessionId}"]`);
+    if (item) {
+      const titleEl = item.querySelector('.session-title');
+      if (titleEl) titleEl.textContent = title;
+    }
+  }
+
+  function renderSessionMessages(messages) {
+    const box = document.getElementById('chat-box');
+    box.innerHTML = '';
+    if (messages.length === 0) {
+      const welcome = document.createElement('div');
+      welcome.className = 'msg-bubble msg-bot shadow-sm';
+      welcome.innerHTML = '<p class="text-gray-800">南無阿彌陀佛，歡迎來到道輝知識庫。☯</p><p class="text-gray-600 text-sm mt-1">您可以詢問有關一貫道教義、典籍內容或修行方法的問題。</p>';
+      box.appendChild(welcome);
+      return;
+    }
+    messages.forEach(m => {
+      const role = m.role === 'user' ? 'user' : 'bot';
+      const msgId = m.role === 'assistant' ? (m.id || null) : null;
+      addMessageToBox(m.content, role, msgId, m.my_rating || null);
+    });
+  }
+
+  function formatRelativeTime(dateStr) {
+    if (!dateStr) return '';
+    // 後端回傳的 datetime 不帶時區，需補上 Z 讓 JS 正確解析為 UTC
+    const normalized = /[Z+]/.test(dateStr) ? dateStr : dateStr + 'Z';
+    const date = new Date(normalized);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return '剛剛';
+    if (diffMins < 60) return `${diffMins}分鐘前`;
+    if (diffHours < 24) return `${diffHours}小時前`;
+    return `${diffDays}天前`;
+  }
+
+  // ── Chat ─────────────────────────────────────────────────────────
+  function clearChat() {
+    const box = document.getElementById('chat-box');
+    box.innerHTML = '';
+    const welcome = document.createElement('div');
+    welcome.className = 'msg-bubble msg-bot shadow-sm';
+    welcome.innerHTML = '<p class="text-gray-800">南無阿彌陀佛，歡迎來到道輝知識庫。☯</p><p class="text-gray-600 text-sm mt-1">您可以詢問有關一貫道教義、典籍內容或修行方法的問題。</p>';
+    box.appendChild(welcome);
+  }
+
+  function askQuestion(q) {
+    document.getElementById('question-input').value = q;
+    sendMessage();
+  }
+
+  function addMessageToBox(content, role, messageId = null, myRating = null) {
+    const box = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.className = `msg-bubble ${role === 'user' ? 'msg-user' : 'msg-bot'} shadow-sm`;
+    if (role === 'user') {
+      div.textContent = content;
+    } else {
+      div.innerHTML = content ? marked.parse(content) : '';
+      // Feedback bar for bot messages
+      const bar = document.createElement('div');
+      bar.className = 'feedback-bar';
+      if (messageId) {
+        bar.dataset.messageId = messageId;
+        bar.innerHTML = buildFeedbackButtons(messageId);
+        if (myRating) {
+          const [upBtn, downBtn] = bar.querySelectorAll('.feedback-btn');
+          if (myRating === 'up') upBtn.classList.add('active-up');
+          else if (myRating === 'down') downBtn.classList.add('active-down');
+          const label = bar.querySelector(`#feedback-label-${messageId}`);
+          if (label) label.textContent = myRating === 'up' ? '感謝回饋！' : '感謝告知';
+        }
+      } else {
+        bar.style.display = 'none';
+      }
+      div.appendChild(bar);
+    }
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
+  function buildFeedbackButtons(messageId) {
+    return `
+      <button class="feedback-btn" title="這個回答有幫助" onclick="submitFeedback(${messageId}, 1, this)">👍</button>
+      <button class="feedback-btn" title="這個回答沒有幫助" onclick="submitFeedback(${messageId}, -1, this)">👎</button>
+      <span class="feedback-label" id="feedback-label-${messageId}"></span>
+    `;
+  }
+
+  function attachMessageId(botDiv, messageId) {
+    const bar = botDiv.querySelector('.feedback-bar');
+    if (!bar) return;
+    bar.dataset.messageId = messageId;
+    bar.innerHTML = buildFeedbackButtons(messageId);
+    bar.style.removeProperty('display');  // 移除 display:none，讓 CSS flex 生效
+  }
+
+  async function submitFeedback(messageId, rating, btn) {
+    if (!authToken) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ message_id: messageId, rating: rating === 1 ? 'up' : 'down' }),
+      });
+      if (!res.ok) throw new Error('feedback failed');
+      const bar = btn.closest('.feedback-bar');
+      if (bar) {
+        bar.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('active-up', 'active-down'));
+        btn.classList.add(rating === 1 ? 'active-up' : 'active-down');
+        const label = document.getElementById(`feedback-label-${messageId}`);
+        if (label) label.textContent = rating === 1 ? '感謝回饋！' : '感謝告知';
+      }
+    } catch (e) {
+      console.error('Failed to submit feedback:', e);
+    }
+  }
+
+  // Keep backward compatibility
+  function addMessage(content, role) {
+    return addMessageToBox(content, role);
+  }
+
+  function showTyping() {
+    const box = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.id = 'typing-indicator';
+    div.className = 'msg-bubble msg-bot shadow-sm flex gap-1 items-center';
+    div.innerHTML = '<span class="typing-dot w-2 h-2 bg-amber-500 rounded-full inline-block"></span>'.repeat(3);
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function removeTyping() {
+    document.getElementById('typing-indicator')?.remove();
+  }
+
+  function updateRoundCounter() {
+    const rounds = Math.floor(currentMessageCount / 2);
+    const counterEl = document.getElementById('round-counter');
+    if (rounds >= MAX_ROUNDS) {
+      showLimitBanner();
+      if (counterEl) counterEl.textContent = '';
+    } else {
+      hideLimitBanner();
+      if (counterEl) {
+        counterEl.textContent = rounds > 0 ? `第 ${rounds} / ${MAX_ROUNDS} 輪問答` : '';
+      }
+    }
+  }
+
+  function showLimitBanner() {
+    document.getElementById('limit-banner').style.display = 'flex';
+    document.getElementById('send-btn').disabled = true;
+  }
+
+  function hideLimitBanner() {
+    document.getElementById('limit-banner').style.display = 'none';
+    document.getElementById('send-btn').disabled = false;
+  }
+
+  async function sendMessage() {
+    if (!authToken) { showLogin(); return; }
+    if (!currentSessionId) {
+      await createNewSession();
+    }
+
+    const input = document.getElementById('question-input');
+    const question = input.value.trim();
+    if (!question) return;
+
+    input.value = '';
+    document.getElementById('send-btn').disabled = true;
+    document.getElementById('sources-bar').classList.add('hidden');
+
+    addMessage(question, 'user');
+    showTyping();
+
+    try {
+      const res = await fetch(`${API_BASE}/api/chat/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ question, session_id: currentSessionId }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        removeTyping();
+        // Handle message limit (HTTP 429)
+        if (res.status === 429) {
+          addMessage(`⚠️ ${err.detail || '已達訊息上限，請開新對話'}`, 'bot');
+          showLimitBanner();
+          return;
+        }
+        addMessage(`⚠️ ${err.detail || '發生錯誤'}`, 'bot');
+        return;
+      }
+
+      removeTyping();
+      const botDiv = addMessage('', 'bot');
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let botText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const token = line.slice(6);
+            if (token === '[DONE]') {
+              // Update session title on first message
+              if (isFirstMessage) {
+                isFirstMessage = false;
+                const shortTitle = question.slice(0, 50);
+                updateSidebarSessionTitle(currentSessionId, shortTitle);
+              }
+              // 每完成一輪問答 += 2（user + assistant）
+              currentMessageCount += 2;
+              updateRoundCounter();
+              break;
+            }
+            if (token.startsWith('[META:')) {
+              try {
+                const meta = JSON.parse(token.slice(6, -1));
+                if (meta.message_id) attachMessageId(botDiv, meta.message_id);
+              } catch (e) { /* ignore parse errors */ }
+              continue;
+            }
+            if (token.startsWith('[ERROR]')) { 
+              botDiv.textContent = token;
+              break; 
+            }
+            botText += token;
+            // Re-render without touching the feedback bar
+            const bar = botDiv.querySelector('.feedback-bar');
+            if (bar) botDiv.removeChild(bar);
+            botDiv.innerHTML = marked.parse(botText);
+            if (bar) botDiv.appendChild(bar);
+            document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+          }
+        }
+      }
+    } catch (e) {
+      removeTyping();
+      addMessage('⚠️ 連線失敗，請確認系統運行中', 'bot');
+    } finally {
+      document.getElementById('send-btn').disabled = false;
+    }
+  }
+
+  // ── File Upload ───────────────────────────────────────────────────
+  async function uploadFile(event) {
+    if (!authToken) { showLogin(); return; }
+    const file = event.target.files[0];
+    if (!file) return;
+    const status = document.getElementById('upload-status');
+    status.textContent = `上傳中：${file.name}…`;
+    status.classList.remove('hidden');
+
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${authToken}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        status.textContent = `✅ ${data.filename} 已匯入（${data.chunks} 個段落）`;
+        status.className = 'text-xs mt-2 text-green-400';
+      } else {
+        status.textContent = `❌ ${data.detail}`;
+        status.className = 'text-xs mt-2 text-red-400';
+      }
+    } catch (e) {
+      status.textContent = '❌ 上傳失敗';
+    }
+    event.target.value = '';
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────
+  if (authToken && currentUsername) {
+    updateLoginUI(currentUsername);
+    // Fetch max_sessions then load sessions
+    fetch(`${API_BASE}/api/auth/me`, { headers: { 'Authorization': `Bearer ${authToken}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(me => { if (me) currentMaxSessions = me.max_sessions ?? 20; })
+      .finally(() => loadSessions());
+  }
+</script>
+</body>
+</html>

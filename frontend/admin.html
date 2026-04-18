@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>道輝 — 管理後台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #111; color: #e0e0e0; font-family: system-ui, sans-serif; }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center; z-index: 50;
+    }
+    .modal-box {
+      background: #1e1e1e; border: 1px solid #333; border-radius: 12px;
+      padding: 28px; width: 380px; max-width: 95vw;
+    }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #1a1a1a; color: #888; font-size: 12px; text-transform: uppercase;
+         letter-spacing: 0.05em; padding: 10px 16px; text-align: left; }
+    td { padding: 12px 16px; border-bottom: 1px solid #2a2a2a; font-size: 14px; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1a1a1a; }
+
+    /* ── Inputs ── */
+    input[type=text], input[type=password] {
+      width: 100%; background: #111; border: 1px solid #444; border-radius: 7px;
+      padding: 8px 12px; color: #e0e0e0; font-size: 14px; outline: none;
+    }
+    input:focus { border-color: #f59e0b; }
+    select {
+      width: 100%; background: #111; border: 1px solid #444; border-radius: 7px;
+      padding: 8px 12px; color: #e0e0e0; font-size: 14px; outline: none;
+    }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: #f59e0b; color: #111; font-weight: 600; padding: 8px 20px;
+      border-radius: 7px; cursor: pointer; border: none; font-size: 14px;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #d97706; }
+    .btn-danger {
+      background: transparent; color: #ef4444; border: 1px solid #ef4444;
+      padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+      transition: background 0.15s;
+    }
+    .btn-danger:hover { background: #ef444422; }
+    .btn-secondary {
+      background: transparent; color: #aaa; border: 1px solid #444;
+      padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #2a2a2a; }
+    .btn-ghost {
+      background: transparent; color: #888; border: none; padding: 4px 8px;
+      border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .btn-ghost:hover { color: #e0e0e0; background: #2a2a2a; }
+
+    /* ── Badge ── */
+    .badge-admin { background: #f59e0b22; color: #f59e0b; border: 1px solid #f59e0b55;
+      padding: 2px 8px; border-radius: 99px; font-size: 12px; }
+    .badge-user  { background: #3b82f622; color: #60a5fa; border: 1px solid #3b82f655;
+      padding: 2px 8px; border-radius: 99px; font-size: 12px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 500; z-index: 100;
+      transition: opacity 0.3s; pointer-events: none;
+    }
+    #toast.success { background: #166534; color: #bbf7d0; }
+    #toast.error   { background: #7f1d1d; color: #fecaca; }
+
+    /* ── Tabs ── */
+    .tab-btn {
+      padding: 8px 20px; border-bottom: 2px solid transparent;
+      color: #888; font-size: 14px; cursor: pointer; background: none; border-top: none;
+      border-left: none; border-right: none; transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn.active { color: #f59e0b; border-bottom-color: #f59e0b; }
+    .tab-btn:hover:not(.active) { color: #ccc; }
+
+    /* ── Textarea ── */
+    textarea {
+      width: 100%; background: #111; border: 1px solid #444; border-radius: 7px;
+      padding: 10px 12px; color: #e0e0e0; font-size: 13px; font-family: monospace;
+      outline: none; resize: vertical; min-height: 140px; line-height: 1.5;
+    }
+    textarea:focus { border-color: #f59e0b; }
+
+    /* ── Active badge ── */
+    .badge-active { background: #14532d22; color: #4ade80; border: 1px solid #4ade8055;
+      padding: 2px 8px; border-radius: 99px; font-size: 12px; }
+    .badge-inactive { background: #1c1c1c; color: #555; border: 1px solid #333;
+      padding: 2px 8px; border-radius: 99px; font-size: 12px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ── Login screen ─────────────────────────────────────── -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center">
+    <div class="bg-[#1e1e1e] border border-[#333] rounded-2xl p-10 w-96">
+      <div class="text-center mb-8">
+        <div class="text-3xl mb-1">🐝</div>
+        <h1 class="text-xl font-bold text-white">BeeBot 管理後台</h1>
+        <p class="text-sm text-gray-500 mt-1">僅限管理員登入</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">帳號</label>
+          <input id="login-username" type="text" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">密碼</label>
+          <input id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+        </div>
+        <p id="login-error" class="text-red-400 text-sm hidden"></p>
+        <button class="btn-primary w-full mt-2" onclick="doLogin()">登入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Admin dashboard ──────────────────────────────────── -->
+  <div id="dashboard" class="hidden min-h-screen">
+
+    <!-- Topbar -->
+    <header class="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] bg-[#161616]">
+      <div class="flex items-center gap-3">
+        <span class="text-xl">🐝</span>
+        <span class="font-semibold text-white">BeeBot 管理後台</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-sm text-gray-400 hover:text-white transition-colors">← 返回聊天</a>
+        <span id="admin-username-label" class="text-sm text-amber-400"></span>
+        <button onclick="doLogout()" class="btn-ghost text-sm">登出</button>
+      </div>
+    </header>
+
+    <!-- Tab navigation -->
+    <div class="border-b border-[#2a2a2a] px-6" style="background:#161616;">
+      <button class="tab-btn active" id="tab-users-btn" onclick="switchTab('users')">使用者管理</button>
+      <button class="tab-btn" id="tab-prompts-btn" onclick="switchTab('prompts')">系統提示詞</button>
+    </div>
+
+    <!-- Main content -->
+    <main class="max-w-4xl mx-auto px-6 py-8">
+
+      <!-- ══ Tab: 使用者管理 ══ -->
+      <div id="tab-users">
+
+      <!-- Stats -->
+      <div class="grid grid-cols-3 gap-4 mb-8">
+        <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl p-5">
+          <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">使用者總數</p>
+          <p id="stat-total" class="text-3xl font-bold text-white">—</p>
+        </div>
+        <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl p-5">
+          <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">一般使用者</p>
+          <p id="stat-users" class="text-3xl font-bold text-blue-400">—</p>
+        </div>
+        <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl p-5">
+          <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">管理員</p>
+          <p id="stat-admins" class="text-3xl font-bold text-amber-400">—</p>
+        </div>
+      </div>
+
+      <!-- User table -->
+      <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-[#2a2a2a]">
+          <h2 class="font-semibold text-white">使用者列表</h2>
+          <button onclick="openCreateModal()" class="btn-primary text-sm px-4 py-2">＋ 新增使用者</button>
+        </div>
+        <div id="table-loading" class="py-12 text-center text-gray-500 text-sm">載入中…</div>
+        <table id="user-table" class="hidden">
+          <thead>
+            <tr>
+              <th>帳號</th>
+              <th>角色</th>
+              <th>對話上限</th>
+              <th>建立時間</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="user-tbody"></tbody>
+        </table>
+        <div id="table-empty" class="hidden py-12 text-center text-gray-500 text-sm">尚無使用者</div>
+      </div>
+
+      </div><!-- end tab-users -->
+
+      <!-- ══ Tab: 系統提示詞 ══ -->
+      <div id="tab-prompts" class="hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="font-semibold text-white text-lg">系統提示詞管理</h2>
+          <button onclick="openPromptCreateModal()" class="btn-primary text-sm px-4 py-2">＋ 新增提示詞</button>
+        </div>
+        <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl overflow-hidden">
+          <div id="prompts-loading" class="py-12 text-center text-gray-500 text-sm">載入中…</div>
+          <table id="prompts-table" class="hidden">
+            <thead>
+              <tr>
+                <th>名稱</th>
+                <th>狀態</th>
+                <th>建立時間</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="prompts-tbody"></tbody>
+          </table>
+          <div id="prompts-empty" class="hidden py-12 text-center text-gray-500 text-sm">尚無提示詞</div>
+        </div>
+        <p class="text-xs text-gray-600 mt-3">提示詞內容必須包含 <code style="color:#f59e0b">{context}</code> 佔位符（會被搜索結果取代）。可同時啟用多個提示詞，啟用中的提示詞內容會依建立時間合併使用。</p>
+      </div><!-- end tab-prompts -->
+
+    </main>
+  </div>
+
+  <!-- ── Modal: 新增使用者 ──────────────────────────────────── -->
+  <div id="create-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <h3 class="text-lg font-semibold text-white mb-5">新增使用者</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">帳號</label>
+          <input id="create-username" type="text" placeholder="輸入帳號" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">密碼</label>
+          <input id="create-password" type="password" placeholder="至少 8 碼，需含大寫字母與數字" />
+          <p class="text-xs text-gray-500 mt-1">例：Abc12345</p>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">角色</label>
+          <select id="create-role">
+            <option value="viewer">一般使用者（viewer）</option>
+            <option value="editor">編輯者（editor）</option>
+            <option value="admin">管理員（限一位）</option>
+          </select>
+        </div>
+        <p id="create-error" class="text-red-400 text-sm hidden"></p>
+      </div>
+      <div class="flex gap-3 mt-6 justify-end">
+        <button onclick="closeCreateModal()" class="btn-secondary">取消</button>
+        <button onclick="submitCreate()" class="btn-primary">建立</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: 修改密碼 ──────────────────────────────────── -->
+  <div id="pwd-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <h3 class="text-lg font-semibold text-white mb-1">修改密碼</h3>
+      <p id="pwd-modal-subtitle" class="text-sm text-gray-400 mb-5"></p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">新密碼</label>
+          <input id="pwd-new" type="password" placeholder="至少 8 個字元" onkeydown="if(event.key==='Enter')submitPwd()" />
+        </div>
+        <p id="pwd-error" class="text-red-400 text-sm hidden"></p>
+      </div>
+      <div class="flex gap-3 mt-6 justify-end">
+        <button onclick="closePwdModal()" class="btn-secondary">取消</button>
+        <button onclick="submitPwd()" class="btn-primary">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: 調整對話上限 ──────────────────────────────── -->
+  <div id="max-sessions-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <h3 class="text-lg font-semibold text-white mb-1">調整對話上限</h3>
+      <p id="max-sessions-modal-subtitle" class="text-sm text-gray-400 mb-5"></p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">最多對話數量（1–1000）</label>
+          <input id="max-sessions-value" type="number" min="1" max="1000" placeholder="20"
+            onkeydown="if(event.key==='Enter')submitMaxSessions()" />
+        </div>
+        <p id="max-sessions-error" class="text-red-400 text-sm hidden"></p>
+      </div>
+      <div class="flex gap-3 mt-6 justify-end">
+        <button onclick="closeMaxSessionsModal()" class="btn-secondary">取消</button>
+        <button onclick="submitMaxSessions()" class="btn-primary">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: 刪除確認 ──────────────────────────────────── -->
+  <div id="del-modal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <h3 class="text-lg font-semibold text-white mb-2">確認刪除</h3>
+      <p id="del-modal-msg" class="text-sm text-gray-400 mb-6"></p>
+      <div class="flex gap-3 justify-end">
+        <button onclick="closeDelModal()" class="btn-secondary">取消</button>
+        <button onclick="submitDelete()" class="btn-danger px-5 py-2">刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: 新增提示詞 ──────────────────────────────────── -->
+  <div id="prompt-create-modal" class="modal-backdrop hidden">
+    <div class="modal-box" style="width:560px;">
+      <h3 class="text-lg font-semibold text-white mb-5">新增系統提示詞</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">名稱</label>
+          <input id="prompt-create-name" type="text" placeholder="例：繁體中文專業版" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">內容（必須含 <span style="color:#f59e0b">{context}</span>）</label>
+          <textarea id="prompt-create-content" placeholder="你是 BeeBot…&#10;&#10;【參考段落】&#10;{context}"></textarea>
+        </div>
+        <p id="prompt-create-error" class="text-red-400 text-sm hidden"></p>
+      </div>
+      <div class="flex gap-3 mt-6 justify-end">
+        <button onclick="closePromptCreateModal()" class="btn-secondary">取消</button>
+        <button onclick="submitPromptCreate()" class="btn-primary">建立</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: 編輯提示詞 ──────────────────────────────────── -->
+  <div id="prompt-edit-modal" class="modal-backdrop hidden">
+    <div class="modal-box" style="width:560px;">
+      <h3 class="text-lg font-semibold text-white mb-5">編輯系統提示詞</h3>
+      <input id="prompt-edit-id" type="hidden" />
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">名稱</label>
+          <input id="prompt-edit-name" type="text" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">內容（必須含 <span style="color:#f59e0b">{context}</span>）</label>
+          <textarea id="prompt-edit-content"></textarea>
+        </div>
+        <p id="prompt-edit-error" class="text-red-400 text-sm hidden"></p>
+      </div>
+      <div class="flex gap-3 mt-6 justify-end">
+        <button onclick="closePromptEditModal()" class="btn-secondary">取消</button>
+        <button onclick="submitPromptEdit()" class="btn-primary">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div id="toast" class="opacity-0"></div>
+
+  <script>
+    const API = '/api';
+    let token = localStorage.getItem('admin_token') || '';
+    let currentPwdUserId = null;
+    let currentDelUserId = null;
+    let currentMaxSessionsUserId = null;
+
+    // ── Auth ────────────────────────────────────────────────
+
+    async function doLogin() {
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errEl = document.getElementById('login-error');
+      errEl.classList.add('hidden');
+
+      try {
+        const res = await fetch(`${API}/auth/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ username, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '登入失敗');
+
+        // Verify admin role
+        token = data.access_token;
+        const meRes = await fetch(`${API}/auth/me`, { headers: authHeader() });
+        const me = await meRes.json();
+        if (me.role !== 'admin') {
+          token = '';
+          throw new Error('此帳號沒有管理員權限');
+        }
+
+        localStorage.setItem('admin_token', token);
+        document.getElementById('admin-username-label').textContent = me.username;
+        showDashboard();
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function doLogout() {
+      token = '';
+      localStorage.removeItem('admin_token');
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+    }
+
+    function authHeader() {
+      return { 'Authorization': `Bearer ${token}` };
+    }
+
+    // ── Dashboard ────────────────────────────────────────────
+
+    function showDashboard() {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      loadUsers();
+    }
+
+    async function loadUsers() {
+      document.getElementById('table-loading').classList.remove('hidden');
+      document.getElementById('user-table').classList.add('hidden');
+      document.getElementById('table-empty').classList.add('hidden');
+
+      try {
+        const res = await fetch(`${API}/admin/users`, { headers: authHeader() });
+        if (res.status === 401) { doLogout(); return; }
+        const users = await res.json();
+
+        // Stats
+        document.getElementById('stat-total').textContent = users.length;
+        document.getElementById('stat-users').textContent = users.filter(u => u.role === 'user').length;
+        document.getElementById('stat-admins').textContent = users.filter(u => u.role === 'admin').length;
+
+        document.getElementById('table-loading').classList.add('hidden');
+
+        if (users.length === 0) {
+          document.getElementById('table-empty').classList.remove('hidden');
+          return;
+        }
+
+        const tbody = document.getElementById('user-tbody');
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td class="font-medium text-white">${escHtml(u.username)}</td>
+            <td><span class="badge-${u.role}">${u.role === 'admin' ? '管理員' : '一般使用者'}</span></td>
+            <td class="text-gray-400 text-sm text-center">${u.max_sessions ?? 20}</td>
+            <td class="text-gray-400 text-sm">${formatDate(u.created_at)}</td>
+            <td>
+              <div class="flex gap-2">
+                <button class="btn-secondary" onclick="openPwdModal(${u.id}, '${escHtml(u.username)}')">改密碼</button>
+                <button class="btn-secondary" onclick="openMaxSessionsModal(${u.id}, '${escHtml(u.username)}', ${u.max_sessions ?? 20})">對話上限</button>
+                <button class="btn-danger" onclick="openDelModal(${u.id}, '${escHtml(u.username)}', '${u.role}')">刪除</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+        document.getElementById('user-table').classList.remove('hidden');
+      } catch (e) {
+        showToast('載入失敗：' + e.message, 'error');
+        document.getElementById('table-loading').classList.add('hidden');
+      }
+    }
+
+    // ── Create user ──────────────────────────────────────────
+
+    function openCreateModal() {
+      document.getElementById('create-username').value = '';
+      document.getElementById('create-password').value = '';
+      document.getElementById('create-role').value = 'user';
+      document.getElementById('create-error').classList.add('hidden');
+      document.getElementById('create-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('create-username').focus(), 50);
+    }
+    function closeCreateModal() {
+      document.getElementById('create-modal').classList.add('hidden');
+    }
+
+    async function submitCreate() {
+      const username = document.getElementById('create-username').value.trim();
+      const password = document.getElementById('create-password').value;
+      const role = document.getElementById('create-role').value;
+      const errEl = document.getElementById('create-error');
+      errEl.classList.add('hidden');
+
+      if (!username) { errEl.textContent = '請輸入帳號'; errEl.classList.remove('hidden'); return; }
+      if (password.length < 8) { errEl.textContent = '密碼至少 8 個字元'; errEl.classList.remove('hidden'); return; }
+
+      try {
+        const res = await fetch(`${API}/admin/users`, {
+          method: 'POST',
+          headers: { ...authHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, role }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(parseDetail(data.detail) || '建立失敗');
+        closeCreateModal();
+        showToast(`使用者 ${username} 已建立`, 'success');
+        loadUsers();
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Change password ──────────────────────────────────────
+
+    function openPwdModal(userId, username) {
+      currentPwdUserId = userId;
+      document.getElementById('pwd-modal-subtitle').textContent = `使用者：${username}`;
+      document.getElementById('pwd-new').value = '';
+      document.getElementById('pwd-error').classList.add('hidden');
+      document.getElementById('pwd-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('pwd-new').focus(), 50);
+    }
+    function closePwdModal() {
+      document.getElementById('pwd-modal').classList.add('hidden');
+      currentPwdUserId = null;
+    }
+
+    async function submitPwd() {
+      const newPassword = document.getElementById('pwd-new').value;
+      const errEl = document.getElementById('pwd-error');
+      errEl.classList.add('hidden');
+
+      if (newPassword.length < 8) { errEl.textContent = '密碼至少 8 個字元'; errEl.classList.remove('hidden'); return; }
+
+      try {
+        const res = await fetch(`${API}/admin/users/${currentPwdUserId}/password`, {
+          method: 'PATCH',
+          headers: { ...authHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_password: newPassword }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(parseDetail(data.detail) || '修改失敗');
+        closePwdModal();
+        showToast('密碼已更新', 'success');
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Max sessions ─────────────────────────────────────────
+
+    function openMaxSessionsModal(userId, username, currentMax) {
+      currentMaxSessionsUserId = userId;
+      document.getElementById('max-sessions-modal-subtitle').textContent = `使用者：${username}`;
+      document.getElementById('max-sessions-value').value = currentMax;
+      document.getElementById('max-sessions-error').classList.add('hidden');
+      document.getElementById('max-sessions-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('max-sessions-value').focus(), 50);
+    }
+    function closeMaxSessionsModal() {
+      document.getElementById('max-sessions-modal').classList.add('hidden');
+      currentMaxSessionsUserId = null;
+    }
+
+    async function submitMaxSessions() {
+      const val = parseInt(document.getElementById('max-sessions-value').value, 10);
+      const errEl = document.getElementById('max-sessions-error');
+      errEl.classList.add('hidden');
+
+      if (!val || val < 1 || val > 1000) {
+        errEl.textContent = '請輸入 1 到 1000 之間的數字';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/admin/users/${currentMaxSessionsUserId}/max-sessions`, {
+          method: 'PATCH',
+          headers: { ...authHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ max_sessions: val }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(parseDetail(data.detail) || '更新失敗');
+        closeMaxSessionsModal();
+        showToast('對話上限已更新', 'success');
+        loadUsers();
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Delete user ──────────────────────────────────────────
+
+    function openDelModal(userId, username, role) {
+      currentDelUserId = userId;
+      const isAdmin = role === 'admin';
+      document.getElementById('del-modal-msg').textContent =
+        isAdmin
+          ? `⚠️ 確定要刪除管理員「${username}」嗎？此操作無法復原。`
+          : `確定要刪除使用者「${username}」嗎？此操作無法復原。`;
+      document.getElementById('del-modal').classList.remove('hidden');
+    }
+    function closeDelModal() {
+      document.getElementById('del-modal').classList.add('hidden');
+      currentDelUserId = null;
+    }
+
+    async function submitDelete() {
+      try {
+        const res = await fetch(`${API}/admin/users/${currentDelUserId}`, {
+          method: 'DELETE',
+          headers: authHeader(),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '刪除失敗');
+        closeDelModal();
+        showToast('使用者已刪除', 'success');
+        loadUsers();
+      } catch (e) {
+        closeDelModal();
+        showToast(e.message, 'error');
+      }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+
+    function parseDetail(detail) {
+      if (!detail) return '';
+      if (typeof detail === 'string') return detail;
+      if (Array.isArray(detail)) return detail.map(e => e.msg || JSON.stringify(e)).join('；');
+      return JSON.stringify(detail);
+    }
+
+    function showToast(msg, type = 'success') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = type;
+      el.style.opacity = '1';
+      setTimeout(() => { el.style.opacity = '0'; }, 3000);
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Tabs ─────────────────────────────────────────────────────────
+
+    function switchTab(tab) {
+      document.getElementById('tab-users').classList.toggle('hidden', tab !== 'users');
+      document.getElementById('tab-prompts').classList.toggle('hidden', tab !== 'prompts');
+      document.getElementById('tab-users-btn').classList.toggle('active', tab === 'users');
+      document.getElementById('tab-prompts-btn').classList.toggle('active', tab === 'prompts');
+      if (tab === 'prompts') loadPrompts();
+    }
+
+    // ── System Prompts ───────────────────────────────────────────────
+
+    let _promptsCache = {};
+
+    async function loadPrompts() {
+      document.getElementById('prompts-loading').classList.remove('hidden');
+      document.getElementById('prompts-table').classList.add('hidden');
+      document.getElementById('prompts-empty').classList.add('hidden');
+
+      try {
+        const res = await fetch(`${API}/admin/system-prompts`, { headers: authHeader() });
+        if (res.status === 401) { doLogout(); return; }
+        const prompts = await res.json();
+
+        document.getElementById('prompts-loading').classList.add('hidden');
+
+        _promptsCache = {};
+        prompts.forEach(p => { _promptsCache[p.id] = p; });
+
+        if (prompts.length === 0) {
+          document.getElementById('prompts-empty').classList.remove('hidden');
+          return;
+        }
+
+        const tbody = document.getElementById('prompts-tbody');
+        tbody.innerHTML = prompts.map(p => `
+          <tr>
+            <td class="font-medium text-white">${escHtml(p.name)}</td>
+            <td>
+              ${p.is_active
+                ? '<span class="badge-active">啟用中</span>'
+                : '<span class="badge-inactive">未啟用</span>'}
+            </td>
+            <td class="text-gray-400 text-sm">${formatDate(p.created_at)}</td>
+            <td>
+              <div class="flex gap-2">
+                <button class="${p.is_active ? 'btn-danger' : 'btn-secondary'}" onclick="togglePrompt(${p.id})">${p.is_active ? '停用' : '啟用'}</button>
+                <button class="btn-secondary" onclick="openPromptEditModal(${p.id})">編輯</button>
+                <button class="btn-danger" onclick="deletePrompt(${p.id}, '${escHtml(p.name)}')">刪除</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+        document.getElementById('prompts-table').classList.remove('hidden');
+      } catch (e) {
+        showToast('載入失敗：' + e.message, 'error');
+        document.getElementById('prompts-loading').classList.add('hidden');
+      }
+    }
+
+    async function togglePrompt(id) {
+      try {
+        const res = await fetch(`${API}/admin/system-prompts/${id}/activate`, {
+          method: 'POST', headers: authHeader(),
+        });
+        if (!res.ok) throw new Error((await res.json()).detail || '操作失敗');
+        const p = await res.json();
+        showToast(p.is_active ? '提示詞已啟用' : '提示詞已停用', 'success');
+        loadPrompts();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    async function deletePrompt(id, name) {
+      if (!confirm(`確定要刪除提示詞「${name}」嗎？`)) return;
+      try {
+        const res = await fetch(`${API}/admin/system-prompts/${id}`, {
+          method: 'DELETE', headers: authHeader(),
+        });
+        if (!res.ok) throw new Error((await res.json()).detail || '刪除失敗');
+        showToast('提示詞已刪除', 'success');
+        loadPrompts();
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    // ── Create prompt modal ───────────────────────────────────────────
+
+    function openPromptCreateModal() {
+      document.getElementById('prompt-create-name').value = '';
+      document.getElementById('prompt-create-content').value = '';
+      document.getElementById('prompt-create-error').classList.add('hidden');
+      document.getElementById('prompt-create-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('prompt-create-name').focus(), 50);
+    }
+    function closePromptCreateModal() {
+      document.getElementById('prompt-create-modal').classList.add('hidden');
+    }
+
+    async function submitPromptCreate() {
+      const name = document.getElementById('prompt-create-name').value.trim();
+      const content = document.getElementById('prompt-create-content').value.trim();
+      const errEl = document.getElementById('prompt-create-error');
+      errEl.classList.add('hidden');
+
+      if (!name) { errEl.textContent = '請輸入名稱'; errEl.classList.remove('hidden'); return; }
+      if (!content.includes('{context}')) {
+        errEl.textContent = '內容必須包含 {context} 佔位符';
+        errEl.classList.remove('hidden'); return;
+      }
+
+      try {
+        const res = await fetch(`${API}/admin/system-prompts`, {
+          method: 'POST',
+          headers: { ...authHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, content }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(parseDetail(data.detail) || '建立失敗');
+        closePromptCreateModal();
+        showToast(`提示詞「${name}」已建立`, 'success');
+        loadPrompts();
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Edit prompt modal ─────────────────────────────────────────────
+
+    function openPromptEditModal(id) {
+      const p = _promptsCache[id];
+      document.getElementById('prompt-edit-id').value = id;
+      document.getElementById('prompt-edit-name').value = p ? p.name : '';
+      document.getElementById('prompt-edit-content').value = p ? p.content : '';
+      document.getElementById('prompt-edit-error').classList.add('hidden');
+      document.getElementById('prompt-edit-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('prompt-edit-name').focus(), 50);
+    }
+    function closePromptEditModal() {
+      document.getElementById('prompt-edit-modal').classList.add('hidden');
+    }
+
+    async function submitPromptEdit() {
+      const id = document.getElementById('prompt-edit-id').value;
+      const name = document.getElementById('prompt-edit-name').value.trim();
+      const content = document.getElementById('prompt-edit-content').value.trim();
+      const errEl = document.getElementById('prompt-edit-error');
+      errEl.classList.add('hidden');
+
+      if (!name) { errEl.textContent = '請輸入名稱'; errEl.classList.remove('hidden'); return; }
+      if (!content.includes('{context}')) {
+        errEl.textContent = '內容必須包含 {context} 佔位符';
+        errEl.classList.remove('hidden'); return;
+      }
+
+      try {
+        const res = await fetch(`${API}/admin/system-prompts/${id}`, {
+          method: 'PUT',
+          headers: { ...authHeader(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, content }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(parseDetail(data.detail) || '更新失敗');
+        closePromptEditModal();
+        showToast('提示詞已更新', 'success');
+        loadPrompts();
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    // Close modals on backdrop click
+    ['create-modal','pwd-modal','max-sessions-modal','del-modal','prompt-create-modal','prompt-edit-modal'].forEach(id => {
+      document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) this.classList.add('hidden');
+      });
+    });
+
+    // Close modals on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeCreateModal(); closePwdModal(); closeMaxSessionsModal(); closeDelModal();
+        closePromptCreateModal(); closePromptEditModal();
+      }
+    });
+
+    // ── Init ─────────────────────────────────────────────────
+
+    (async function init() {
+      if (!token) return;
+      // Verify stored token is still valid and is admin
+      try {
+        const res = await fetch(`${API}/auth/me`, { headers: authHeader() });
+        if (!res.ok) throw new Error();
+        const me = await res.json();
+        if (me.role !== 'admin') throw new Error();
+        document.getElementById('admin-username-label').textContent = me.username;
+        showDashboard();
+      } catch {
+        token = '';
+        localStorage.removeItem('admin_token');
+      }
+    })();
+  </script>
+</body>
+</html>
