@@ -1,9 +1,7 @@
-# 道輝 — 一貫道內部知識庫系統
+# Career Analyst KB — 職涯分析師知識庫系統
 
-基於 RAG（Retrieval-Augmented Generation）架構的一貫道典籍智慧問答系統，支援 PDF/DOCX/PPTX 解析、混合向量搜索（Dense + BM25）、安全防護與 Web 介面。
+基於 RAG（Retrieval-Augmented Generation）架構的職涯分析師問答系統，知識來源為 YouTube 頻道 @hrjasmin 的職涯影片字幕，支援混合向量搜索（Dense + BM25）、安全防護與 Web 介面。
 預設使用本機 **Ollama + Gemma3:12b**，無需雲端 API 金鑰即可運行。也支援切換至 xAI Grok 等雲端 LLM。
-
-![道輝知識庫介面](static/images/截圖%202026-04-15%20晚上10.11.44.png)
 
 ---
 
@@ -499,7 +497,7 @@ python3.11 scripts/generate_qa_dataset.py \
 ### 專案結構
 
 ```
-yiguandao-kb/
+career-analyst-kb/
 ├── src/                      # 主要程式碼（遵循 Clean Architecture）
 │   ├── api/                  # FastAPI 路由與中間件
 │   ├── application/          # 業務邏輯服務層

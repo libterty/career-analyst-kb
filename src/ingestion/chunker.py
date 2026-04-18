@@ -41,7 +41,7 @@ class Chunk:
 
 # 章節分隔標記，切塊時優先在這些邊界切割
 # 越前面的分隔符優先級越高（先嘗試章節邊界，最後才切字元）
-_YIGUANDAO_SEPARATORS = [
+_DOCUMENT_SEPARATORS = [
     r"\n第[一二三四五六七八九十百千]+章",   # 第X章
     r"\n第[一二三四五六七八九十百千]+節",   # 第X節
     r"\n[（(]\d+[)）]",                    # (1) 條目
@@ -80,7 +80,7 @@ class SmartChunker:
         self.chunk_overlap = chunk_overlap
         self._enc = tiktoken.get_encoding(model_encoding)
         self._splitter = RecursiveCharacterTextSplitter(
-            separators=_YIGUANDAO_SEPARATORS,
+            separators=_DOCUMENT_SEPARATORS,
             chunk_size=max_tokens,        # length_function 已是 token 計算，直接用 max_tokens
             chunk_overlap=chunk_overlap,
             length_function=self._token_len,  # 以 token 數而非字元數計算長度

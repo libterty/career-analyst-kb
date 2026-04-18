@@ -107,7 +107,7 @@ def confirm(prompt: str) -> bool:
 # ── 主程式 ────────────────────────────────────────────────────────────
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="清空一貫道知識庫")
+    parser = argparse.ArgumentParser(description="清空職涯分析師知識庫")
     parser.add_argument("--yes", "-y", action="store_true", help="跳過確認，直接執行（CI 用）")
     parser.add_argument("--vectors-only", action="store_true", help="只清 Milvus 向量，保留 PostgreSQL 紀錄")
     parser.add_argument("--db-only", action="store_true", help="只清 PostgreSQL documents 表，保留向量")
@@ -117,7 +117,7 @@ def main() -> None:
     parser.add_argument("--milvus-port", type=int, default=int(os.getenv("MILVUS_PORT", "19530")))
     parser.add_argument(
         "--collection",
-        default=os.getenv("MILVUS_COLLECTION", "yiguandao_kb"),
+        default=os.getenv("MILVUS_COLLECTION", "career_kb"),
         help="Milvus Collection 名稱",
     )
     args = parser.parse_args()
@@ -125,7 +125,7 @@ def main() -> None:
     # 從環境變數取得 PostgreSQL 連線字串
     database_url = os.getenv(
         "DATABASE_URL",
-        "postgresql+asyncpg://yiguandao:secret@localhost:5436/yiguandao_kb",
+        "postgresql+asyncpg://career:secret@localhost:5432/career_kb",
     )
 
     # ── 顯示操作摘要，讓使用者清楚即將執行的操作 ──

@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "yiguandao-kb"
+name = "career-kb"
 version = "1.0.0"
-description = "一貫道內部知識庫系統 — Internal Knowledge Base"
+description = "職涯分析師知識庫系統 — Career Analyst Knowledge Base"
 requires-python = ">=3.11"
 
 dependencies = [

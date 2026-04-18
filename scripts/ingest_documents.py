@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI 工具：將文件匯入一貫道知識庫。
+"""CLI 工具：將文件匯入職涯分析師知識庫。
 
 此腳本是文件匯入的命令列入口，會依序執行：
   解析文件 → 切塊 → 向量化 → 寫入 Milvus
@@ -29,7 +29,7 @@ from src.ingestion.pipeline import IngestionPipeline
 
 
 def main():
-    parser = argparse.ArgumentParser(description="一貫道知識庫 — 文件匯入工具")
+    parser = argparse.ArgumentParser(description="職涯分析師知識庫 — 文件匯入工具")
     # --path 與 --file 互斥，至少提供一個
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--path", help="批次匯入目錄（匯入目錄下所有 PDF/DOCX）")
