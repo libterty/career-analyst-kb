@@ -77,6 +77,8 @@ coverage.xml
 # 忽略 data 資料夾下所有內容
 data/raw/*
 data/processed/*
+data/subtitles/*
+!data/subtitles/.gitkeep
 data/embeddings/*
 
 
