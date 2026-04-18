@@ -40,7 +40,7 @@ class SecurityGuardrail(IInputValidator, IOutputSanitizer):
         2. ContentFilter：過濾有害內容（製毒、自傷等）
 
     輸出過濾流程（sanitize_output）：
-        - ContentFilter：過濾一貫道機密口訣、PII 個資等
+        - ContentFilter：過濾有害內容、PII 個資等
     """
 
     def __init__(self) -> None:

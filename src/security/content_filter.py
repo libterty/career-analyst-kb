@@ -34,7 +34,7 @@ class FilterResult:
     violations: list[str]
 
 
-# 一貫道系統內部機密詞（禁止出現在 LLM 輸出中）
+# 系統機密詞（禁止出現在 LLM 輸出中）
 # 這些資訊依教義規定須由點傳師當面傳授，不可以文字形式公開
 _INTERNAL_SENSITIVE_PATTERNS = [
     (r"三寶\s*口訣", "三寶口訣（機密傳授，不得文字記錄）"),
@@ -61,7 +61,7 @@ class ContentFilter:
     """雙向內容過濾器。
 
     輸入過濾（filter_input）：
-        - 只過濾有害內容（不過濾一貫道機密詞）
+        - 只過濾有害內容
         - 用戶可以「詢問」三寶口訣，但回答中不會出現
 
     輸出過濾（filter_output）：
@@ -84,7 +84,7 @@ class ContentFilter:
         注意：輸入不過濾機密詞，因為使用者可能合理地詢問這些概念。
         實際保護在輸出層執行。
         """
-        # 輸入只過濾有害內容，不過濾一貫道內部機密詞
+        # 輸入只過濾有害內容
         harmful_patterns = [
             (re.compile(p, re.IGNORECASE), label)
             for p, label in _HARMFUL_PATTERNS

@@ -9,7 +9,7 @@ services:
     env_file:
       - ../.env.example
     environment:
-      DATABASE_URL: "postgresql+asyncpg://yiguandao:secret@postgres:5432/yiguandao_kb"
+      DATABASE_URL: "postgresql+asyncpg://career:secret@postgres:5432/career_kb"
       MILVUS_HOST: "milvus-standalone"
       MILVUS_PORT: "19530"
       OLLAMA_BASE_URL: "http://host.docker.internal:11434"
@@ -26,15 +26,15 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: yiguandao
+      POSTGRES_USER: career
       POSTGRES_PASSWORD: secret
-      POSTGRES_DB: yiguandao_kb
+      POSTGRES_DB: career_kb
     ports:
       - "5436:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U yiguandao"]
+      test: ["CMD-SHELL", "pg_isready -U career"]
       interval: 5s
       timeout: 5s
       retries: 5

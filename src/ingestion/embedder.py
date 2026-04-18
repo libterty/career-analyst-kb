@@ -22,7 +22,7 @@ from ..core.llm_factory import build_embedder, get_embedding_dim
 from .chunker import Chunk
 
 # Milvus Collection 名稱，可透過環境變數覆寫
-COLLECTION_NAME = os.getenv("MILVUS_COLLECTION", "yiguandao_kb")
+COLLECTION_NAME = os.getenv("MILVUS_COLLECTION", "career_kb")
 
 
 def _build_schema(embedding_dim: int) -> CollectionSchema:
@@ -50,7 +50,7 @@ def _build_schema(embedding_dim: int) -> CollectionSchema:
         FieldSchema("page_number", DataType.INT32),   # 來源頁碼（0 表示未知
         FieldSchema("embedding", DataType.FLOAT_VECTOR, dim=embedding_dim),
     ]
-    return CollectionSchema(fields, description="一貫道知識庫向量索引")
+    return CollectionSchema(fields, description="職涯分析師知識庫向量索引")
 
 
 class EmbeddingService:

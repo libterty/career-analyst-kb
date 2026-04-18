@@ -15,7 +15,7 @@ from loguru import logger
 from src.core.domain.search_result import SearchResult  # noqa: F401（re-export）
 from src.core.interfaces.retriever import IVectorRetriever
 
-COLLECTION_NAME = os.getenv("MILVUS_COLLECTION", "yiguandao_kb")
+COLLECTION_NAME = os.getenv("MILVUS_COLLECTION", "career_kb")
 DEFAULT_TOP_K = 10
 OUTPUT_FIELDS = ["chunk_id", "doc_hash", "source", "section", "content", "token_count", "page_number"]
 

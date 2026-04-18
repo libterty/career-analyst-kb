@@ -1,5 +1,5 @@
 """Phase 1 — Smart Chunker
-策略：語意段落優先 → 固定 Token 大小 fallback，保留一貫道章節結構。
+策略：語意段落優先 → 固定 Token 大小 fallback，保留段落結構。
 """
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ class Chunk:
     metadata: dict = field(default_factory=dict)
 
 
-# 一貫道典籍常見章節分隔標記，切塊時優先在這些邊界切割
+# 章節分隔標記，切塊時優先在這些邊界切割
 # 越前面的分隔符優先級越高（先嘗試章節邊界，最後才切字元）
 _YIGUANDAO_SEPARATORS = [
     r"\n第[一二三四五六七八九十百千]+章",   # 第X章

@@ -56,12 +56,19 @@ class AppSettings(BaseSettings):
     # ── Milvus ────────────────────────────────────────────────────────
     milvus_host: str = "localhost"
     milvus_port: int = 19530
-    milvus_collection: str = "yiguandao_kb"
+    milvus_collection: str = "career_kb"
 
     # ── PostgreSQL ────────────────────────────────────────────────────
     database_url: str = (
-        "postgresql+asyncpg://yiguandao:secret@localhost:5432/yiguandao_kb"
+        "postgresql+asyncpg://career:secret@localhost:5432/career_kb"
     )
+
+    # ── YouTube Ingestion ─────────────────────────────────────────────
+    youtube_api_key: str | None = None
+    """YouTube Data API v3 Key"""
+
+    whisper_model: str = "large-v3"
+    """Whisper 模型大小：base | small | medium | large-v3"""
 
     # ── Auth ──────────────────────────────────────────────────────────
     secret_key: str = "CHANGE_ME_IN_PRODUCTION_USE_RANDOM_32_CHARS"

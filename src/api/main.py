@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
     關閉時：執行清理工作
     """
     settings = get_settings()
-    logger.info("🚀 Starting 一貫道知識庫系統...")
+    logger.info("🚀 Starting Career Analyst KB...")
     run_migrations()  # 執行 Alembic migration（自動套用所有待執行的版本）
     logger.success("✅ Database migrations applied")
 
@@ -59,8 +59,8 @@ async def lifespan(app: FastAPI):
 # ---- Application --------------------------------------------------- #
 
 app = FastAPI(
-    title="一貫道內部知識庫系統",
-    description="基於 RAG 架構的一貫道典籍智慧問答系統",
+    title="Career Analyst KB",
+    description="基於 RAG 架構的職涯分析師知識庫系統",
     version="1.0.0",
     lifespan=lifespan,
     # 正式環境關閉 Swagger UI（/docs），避免暴露 API 文件
