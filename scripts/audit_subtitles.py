@@ -1,30 +1,44 @@
 #!/usr/bin/env python3
-"""Audit downloaded subtitles: count coverage, list missing videos."""
+"""Audit downloaded subtitles: count coverage across all tabs, list missing videos."""
 import re
 from pathlib import Path
 from collections import defaultdict
 
 SUBTITLE_DIR = Path(__file__).parent.parent / "data" / "subtitles"
-LOG_FILE = SUBTITLE_DIR / "download.log"
+
+# One log file per channel tab
+TAB_LOGS: dict[str, str] = {
+    "videos":   "download.log",
+    "shorts":   "download_shorts.log",
+    "streams":  "download_streams.log",
+    "podcasts": "download_podcasts.log",
+}
+
+_TOTAL_RE = re.compile(r"Downloading (\d+) items")
+_URL_RE = re.compile(
+    r"Extracting URL: https://www\.youtube\.com/(?:watch\?v=|shorts/)([A-Za-z0-9_-]+)"
+)
 
 
 def parse_log(log_path: Path) -> tuple[int, list[str]]:
-    """Return (total_videos, list_of_video_ids_without_subtitles)."""
-    total = 0
-    no_sub_ids = []
-    no_sub_pattern = re.compile(r"There are no subtitles.*?/watch\?v=([A-Za-z0-9_-]+)")
-    total_pattern = re.compile(r"Downloading (\d+) items")
-
+    """Return (total_in_tab, video_ids_without_subtitles)."""
     if not log_path.exists():
         return 0, []
 
-    content = log_path.read_text(errors="replace")
-    m = total_pattern.search(content)
-    if m:
-        total = int(m.group(1))
+    lines = log_path.read_text(errors="replace").splitlines()
 
-    for m in no_sub_pattern.finditer(content):
-        no_sub_ids.append(m.group(1))
+    m = _TOTAL_RE.search("\n".join(lines[:20]))
+    total = int(m.group(1)) if m else 0
+
+    no_sub_ids: list[str] = []
+    last_video_id = ""
+    for line in lines:
+        mu = _URL_RE.search(line)
+        if mu:
+            last_video_id = mu.group(1)
+        elif "There are no subtitles" in line and last_video_id:
+            no_sub_ids.append(last_video_id)
+            last_video_id = ""
 
     return total, no_sub_ids
 
@@ -38,29 +52,43 @@ def count_vtt_files() -> dict[str, int]:
 
 
 def main() -> None:
-    total, no_sub_ids = parse_log(LOG_FILE)
+    grand_total = 0
+    all_no_sub: list[str] = []
+
+    print(f"Subtitle directory: {SUBTITLE_DIR}\n")
+    print(f"{'Tab':<12} {'Total':>6}  {'No-sub':>6}  Status")
+    print("-" * 40)
+
+    for tab, log_name in TAB_LOGS.items():
+        log_path = SUBTITLE_DIR / log_name
+        total, no_sub = parse_log(log_path)
+        status = "done" if log_path.exists() and "Finished" in log_path.read_text(errors="replace") else ("in progress" if log_path.exists() else "not started")
+        print(f"  {tab:<10} {total:>6}  {len(no_sub):>6}  {status}")
+        grand_total += total
+        all_no_sub.extend(no_sub)
+
     vtt_counts = count_vtt_files()
-
     total_vtts = sum(vtt_counts.values())
-    print(f"Subtitle directory: {SUBTITLE_DIR}")
-    print(f"Total videos in channel: {total or '(run download first)'}")
-    print(f"VTT files downloaded:    {total_vtts}")
-    if total:
-        print(f"Coverage:                {total_vtts / total * 100:.1f}%")
-    print()
-    print("By language:")
-    for lang, count in sorted(vtt_counts.items(), key=lambda x: -x[1]):
-        print(f"  {lang:20s} {count}")
 
-    if no_sub_ids:
-        print(f"\nVideos without any subtitles ({len(no_sub_ids)}):")
-        for vid_id in no_sub_ids:
-            print(f"  https://www.youtube.com/watch?v={vid_id}")
+    print("-" * 40)
+    print(f"  {'TOTAL':<10} {grand_total:>6}  {len(all_no_sub):>6}")
+    print(f"\nVTT files on disk:   {total_vtts}")
+    if grand_total:
+        print(f"Coverage:            {total_vtts / grand_total * 100:.1f}%")
+
+    print("\nBy language:")
+    for lang, count in sorted(vtt_counts.items(), key=lambda x: -x[1]):
+        print(f"  {lang:<20} {count}")
+
+    # Deduplicate (a video ID might appear across multiple tabs)
+    unique_no_sub = list(dict.fromkeys(all_no_sub))
+    if unique_no_sub:
         no_sub_path = SUBTITLE_DIR / "no_subtitles.txt"
-        no_sub_path.write_text("\n".join(no_sub_ids) + "\n")
-        print(f"\nSaved to {no_sub_path} (for Whisper fallback)")
+        no_sub_path.write_text("\n".join(unique_no_sub) + "\n")
+        print(f"\nVideos needing Whisper fallback: {len(unique_no_sub)}")
+        print(f"Saved to: {no_sub_path}")
     else:
-        print("\nNo missing-subtitle videos detected (or download not yet complete).")
+        print("\nNo missing-subtitle videos detected (or downloads not yet complete).")
 
 
 if __name__ == "__main__":
