@@ -132,6 +132,18 @@ open http://localhost:8000/docs  # Swagger API 文件
 
 ## VoltAgent 多代理人層（Phase 3+）
 
+使用者問題由 **SupervisorAgent（CareerLeadAgent）** 接收，依主題路由到對應的專家子 agent：
+
+| Agent | 職責 |
+| ----- | ---- |
+| **SupervisorAgent** | 理解問題、路由決策、整合多 agent 回應 |
+| **ResumeAgent** | 履歷撰寫、ATS 關鍵字優化、版面結構建議 |
+| **InterviewAgent** | 面試準備、STAR 方法指導、模擬問答生成 |
+| **CareerPlanAgent** | 職涯規劃、轉職路徑、技能 Gap 分析 |
+| **SalaryAgent** | 薪資行情、談判策略、offer 綜合評估 |
+
+所有 agent 透過 `queryCareerKB` tool 存取 KB API，回應引用具體影片內容。
+
 ```bash
 # 另開一個 terminal
 cd services/voltagent-career
