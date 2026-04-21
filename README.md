@@ -193,13 +193,31 @@ python eval/latency_bench.py --url http://localhost:8000 --runs 20 --concurrency
 
 ---
 
+## Phase 8 — 模型升級計畫
+
+**目標**：以 [Qwen3.6-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled](https://huggingface.co/hesamation/Qwen3.6-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled-GGUF) 取代現行 Gemma3:12b。
+
+此模型為 Qwen 3.6 35B（MoE，實際 active 3B 參數）以 Claude Opus 4.6 的 Chain-of-Thought 蒸餾資料做 SFT，保留 Qwen 的 agentic 編碼底座，同時獲得 Claude Opus 級別的推理結構。GGUF Q4_K_M 量化版本約 22 GB，可完整 GPU offload 在 **Mac M3 Max 36GB**。
+
+**Phase 8 實作範圍**：
+
+1. 透過 Ollama 載入 GGUF 並驗證 Metal GPU offload
+2. API 層過濾 `<think>…</think>` 推理軌跡，不送到前端（可選 debug header 暴露）
+3. Prompt 微調：KB API system prompt 加入 CoT 引導、各 VoltAgent sub-agent instructions 強化推理格式要求
+4. LoRA fine-tune（Unsloth，選項）：以職涯問答 golden dataset 做領域 SFT
+5. 重跑 eval harness 對比 Gemma3:12b baseline（目標 routing ≥ 88%、RAG relevance ≥ 3.0/4.0）
+
+詳見 [設計文件 Phase 8](./docs/design-career-analyst-kb.md)。
+
+---
+
 ## Tech Stack
 
 | 層級 | 技術 |
 |------|------|
 | **KB API** | FastAPI 0.115 + Python 3.11 |
 | **Agent Layer** | VoltAgent 2.7 + TypeScript |
-| **LLM** | Ollama Gemma3:12b（本機）/ xAI Grok（可選）|
+| **LLM** | Ollama Gemma3:12b（現行）→ Qwen3.6-35B-A3B Reasoning Distilled（Phase 8）/ xAI Grok（可選） |
 | **Embedding** | Ollama nomic-embed-text（768 dim）|
 | **Vector DB** | Milvus 2.4 |
 | **Search** | Dense + BM25 + RRF fusion |
