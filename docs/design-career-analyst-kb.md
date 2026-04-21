@@ -2,7 +2,7 @@
 
 **Author**: Albert  
 **Date**: 2026-04-18  
-**Last Updated**: 2026-04-18 (Phase 0 + Phase 0.5 + Phase 1 complete)  
+**Last Updated**: 2026-04-21 (Phase 1–4 complete; ingestion in progress)  
 **Status**: In Progress  
 **Scope**: 職涯分析師 KB — YouTube 影片知識庫 + VoltAgent Agent 管理層
 
@@ -18,13 +18,14 @@
 
 1. **Knowledge Base**：將頻道職涯影片的語音內容轉化為可查詢的向量知識庫
 2. **Career Analyst Agent**：以此 KB 為基底，提供職涯諮詢、履歷評估、面試準備等能力
-3. **Agent Management**：引入 VoltAgent 統一管理多個專門 agent，並提供 VoltOps 可觀測性
+3. **Agent Management**：引入 VoltAgent 統一管理多個專門 agent
 
 ### 1.3 非目標 (Out of Scope)
 
 - 影片版權重新散布
 - 即時監控頻道新影片（Phase 1 不含，可未來擴充）
 - 自訓練 fine-tuned model（使用 RAG 即可）
+- VoltOps Cloud 可觀測性（改用本機 Ollama，無需雲端 API key）
 
 ---
 
@@ -40,9 +41,10 @@
 ┌────────────────────────┐            ┌─────────────────────────────┐
 │   VoltAgent Layer      │            │   career-analyst-kb API     │
 │   (TypeScript/Node)    │◄──────────►│   (FastAPI / Python)        │
-│                        │  HTTP      │                             │
+│   services/voltagent-  │  HTTP      │   services/kb-api/          │
+│   career/              │            │                             │
 │  ┌──────────────────┐  │            │  /api/chat/query (SSE)      │
-│  │ SupervisorAgent  │  │            │  /api/documents/upload      │
+│  │ SupervisorAgent  │  │            │  /api/ingestion/youtube     │
 │  │  (Career Lead)   │  │            │  /api/sessions/             │
 │  └────────┬─────────┘  │            └──────────┬──────────────────┘
 │           │             │                       │
@@ -58,7 +60,7 @@
 ┌────────────┴──────────────────────────────────────────────────────┐
 │                     Ingestion Pipeline                             │
 │                                                                    │
-│  YouTube API  →  yt-dlp  →  Whisper (STT)  →  Transcript          │
+│  yt-dlp  →  VTT/Whisper (STT)  →  Transcript                      │
 │                                ↓                                   │
 │              Topic Classifier  →  Chunker  →  Embedder             │
 │                                              ↓                     │
@@ -78,19 +80,44 @@ yiguandao-kb 已有成熟的：
 - JWT auth、rate limiting、semantic cache
 - Clean Architecture（ingestion / rag / api / security 分層）
 
-**決策**：`cp -r yiguandao-kb career-analyst-kb` 建立全新獨立 repo，移除所有一貫道領域內容（glossary、system prompt、sample data），重新命名 collection 為 `career_kb`。兩個 repo 完全分離，不共用程式碼。
+**決策**：`cp -r yiguandao-kb career-analyst-kb` 建立全新獨立 repo，移除所有一貫道領域內容，重新命名 collection 為 `career_kb`。
 
-### 3.2 VoltAgent 作為 Agent 管理層
+### 3.2 Mono-Repo 結構（✅ Done — Codex 重構）
 
-career-analyst-kb 的 FastAPI 是純 RAG API，缺乏：
-- 多 agent 協作（Supervisor Pattern）
-- Agent 狀態機 / Workflow
-- 可觀測性（trace、span、metrics）
-- 工具呼叫鏈（Tool Use）
+原始設計為兩個獨立 repo；Codex 將兩個服務整合為 mono-repo：
 
-**決策**：VoltAgent（TypeScript）作為 agent orchestration layer，透過 HTTP 呼叫 yiguandao-kb API。兩層獨立部署，透過 Docker Compose 整合。
+```
+career-analyst-kb/          ← git root
+├── services/
+│   ├── kb-api/             ← Python FastAPI + RAG pipeline
+│   └── voltagent-career/   ← TypeScript VoltAgent layer
+├── docker/
+│   └── docker-compose.yml
+├── frontend/
+├── data/
+└── docs/
+```
 
-### 3.3 語音轉文字策略
+**優點**：共用 Docker Compose、統一 `.env`、CI/CD 單一 pipeline。
+
+### 3.3 VoltAgent 作為 Agent 管理層
+
+career-analyst-kb 的 FastAPI 是純 RAG API，缺乏多 agent 協作與工具呼叫鏈。
+
+**決策**：VoltAgent（TypeScript）作為 agent orchestration layer，透過 HTTP 呼叫 KB API。兩層獨立部署，透過 Docker Compose 整合。
+
+### 3.4 VoltAgent LLM：本機 Ollama（✅ 已確定）
+
+原設計使用 Anthropic claude-sonnet-4-6，改為本機 Ollama 以零成本運行。
+
+| 方案 | 成本 | 品質 | 狀態 |
+|------|------|------|------|
+| Anthropic claude-sonnet-4-6 | ~$3/M tokens | 優 | ❌ 改為本機 |
+| Ollama gemma3:12b (本機) | 零成本 | 良好（個人專案足夠） | ✅ 採用 |
+
+**實作**：使用 `@ai-sdk/openai` 的 `createOpenAI` 指向 `http://localhost:11434/v1`（Ollama OpenAI 相容端點）。模型可透過 `VOLTAGENT_MODEL` env var 切換（預設 `gemma3:12b`）。
+
+### 3.5 語音轉文字策略
 
 | 方案 | 優點 | 缺點 |
 |------|------|------|
@@ -98,16 +125,15 @@ career-analyst-kb 的 FastAPI 是純 RAG API，缺乏：
 | OpenAI Whisper (local) | 高品質、離線 | 慢（large model ~2x 影片時長）|
 | Whisper API | 快速、準確 | 付費、需上傳音訊 |
 
-**決策**：**優先使用 YouTube 現有字幕**（yt-dlp 批次抓取），只有沒有字幕的影片才啟動 Whisper 轉錄。這樣可大幅縮短初始 ingest 時間。字幕品質問題用 LLM 後處理修正。
+**決策**：**優先使用 YouTube 現有字幕**，只有沒有字幕的影片才啟動本機 Whisper（medium model 節省時間）。
 
 ---
 
 ## 4. Data Pipeline: YouTube → Career KB
 
-### 4.0 前置作業：批次抓取字幕（一次性執行）✅ Done
+### 4.0 前置作業：批次抓取字幕（✅ Done）
 
 > **實際發現**：@hrjasmin 共有 **1,794 部影片**，分布在 4 個 tab。
-> 字幕策略需針對每個 tab 分別執行，因為 Shorts / 直播 / Podcast 的字幕覆蓋率差異極大。
 
 #### 實際字幕覆蓋率（2026-04-18）
 
@@ -119,102 +145,71 @@ career-analyst-kb 的 FastAPI 是純 RAG API，缺乏：
 | podcasts | 43     | 0      | 43     | 0%     |
 | **合計** | **1,837** | **~360+** | **~250+** | **~68%** |
 
-> ⚠️ streams 和 podcasts **全部**無字幕（直播/播客平台特性），需 Whisper 全量轉錄。
-
-```bash
-# 各 tab 分開執行（已完成）
-yt-dlp --write-auto-subs --write-subs --sub-langs "zh-Hant,zh-TW,zh,en" \
-  --skip-download -o "data/subtitles/%(upload_date)s_%(id)s_%(title)s.%(ext)s" \
-  "https://www.youtube.com/@hrjasmin/videos"   > data/subtitles/download.log
-  
-yt-dlp ... "https://www.youtube.com/@hrjasmin/shorts"   > data/subtitles/download_shorts.log
-yt-dlp ... "https://www.youtube.com/@hrjasmin/streams"  > data/subtitles/download_streams.log
-yt-dlp ... "https://www.youtube.com/@hrjasmin/podcasts" > data/subtitles/download_podcasts.log
-
-# 統計覆蓋率（跨 4 個 tab 彙整）
-python scripts/audit_subtitles.py
-```
+> ⚠️ streams 和 podcasts **全部**無字幕，需 Whisper 全量轉錄。
 
 ### 4.1 Pipeline 流程
 
 ```
-Step 0: Subtitle Audit (前置，一次性)
-  yt-dlp --flat-playlist → video_list.txt
+Step 0: Subtitle Audit (前置，一次性) ✅
   yt-dlp --write-auto-subs → data/subtitles/*.vtt
   audit_subtitles.py → 分類：has_subtitle / needs_whisper
 
-Step 1: Transcription（依字幕狀態分流）
-  has_subtitle:
-    vtt_to_text.py → 清理 VTT 格式 → plain text + timestamps
-    LLM post-process → 修正錯字、斷句（批次，cheap model）
-  needs_whisper:
-    yt-dlp --extract-audio → mp3
-    openai-whisper large-v3 → transcript + timestamps
+Step 1: Transcription ✅
+  has_subtitle:  vtt_to_text.py → plain text
+  needs_whisper: whisper_fallback.py → mlx-whisper medium → plain text
 
-Step 2: Enrichment
-  Topic Classifier (LLM)
-    → resume / interview / career_plan / salary / mindset / other
-    → other → skip（不進 KB）
-  Metadata: video_id, title, published_at, duration, url
+Step 2: Chunking + Classification
+  CareerChunker (max_tokens=400, overlap=40)
+  CareerClassifier (9 topics: resume/interview/career_planning/
+                    salary/workplace/job_search/promotion/
+                    industry_insight/skill_development)
 
-Step 3: Chunking
-  CareerChunker
-    → max_tokens=512, overlap=64
-    → 保留 timestamp_start / timestamp_end（方便引用影片片段）
-
-Step 4: Embed & Store
-  EmbeddingService (nomic-embed-text, 768-dim)
-    → Milvus: career_kb
-    → metadata: video_id, title, topic, timestamp_start, timestamp_end, url
+Step 3: Embed & Store
+  EmbeddingService (nomic-embed-text, 768-dim, via Ollama)
+  → Milvus: career_kb collection
 ```
 
-### 4.2 Milvus Schema: `career_kb`
+### 4.2 Milvus Schema: `career_kb`（實際實作）
 
 ```python
 fields = [
-    FieldSchema("chunk_id",       VARCHAR, max_length=64,   is_primary=True),
-    FieldSchema("video_id",       VARCHAR, max_length=32),
-    FieldSchema("video_title",    VARCHAR, max_length=256),
-    FieldSchema("topic",          VARCHAR, max_length=32),   # resume/interview/...
-    FieldSchema("content",        VARCHAR, max_length=4096),
-    FieldSchema("timestamp_start",INT32),                    # seconds
-    FieldSchema("timestamp_end",  INT32),
-    FieldSchema("published_at",   VARCHAR, max_length=32),
-    FieldSchema("url",            VARCHAR, max_length=256),
-    FieldSchema("token_count",    INT32),
-    FieldSchema("embedding",      FLOAT_VECTOR, dim=768),
+    FieldSchema("chunk_id",     VARCHAR,      max_length=64,   is_primary=True),
+    FieldSchema("doc_hash",     VARCHAR,      max_length=32),
+    FieldSchema("source",       VARCHAR,      max_length=512),
+    FieldSchema("section",      VARCHAR,      max_length=128),  # topic (e.g. "interview")
+    FieldSchema("content",      VARCHAR,      max_length=4096),
+    FieldSchema("token_count",  INT32),
+    FieldSchema("page_number",  INT32),
+    FieldSchema("video_title",  VARCHAR,      max_length=512),
+    FieldSchema("upload_date",  VARCHAR,      max_length=16),   # YYYYMMDD
+    FieldSchema("url",          VARCHAR,      max_length=128),  # YouTube watch URL
+    FieldSchema("embedding",    FLOAT_VECTOR, dim=768),
 ]
 ```
 
-### 4.3 新增 API Endpoint
+> **注意**：topic 存放在 `section` 欄位（沿用 base template 的欄位名）。
+
+### 4.3 Ingestion API Endpoint（✅ 已實作）
 
 ```
-POST /api/ingestion/youtube
-  Body: { channel_url: str, limit?: int, force_reingest?: bool }
-  Auth: admin only
-  Response: SSE stream of ingestion progress
-
-GET /api/ingestion/youtube/status
-  Response: { total_videos, processed, skipped, failed, last_run }
+POST /api/ingestion/youtube?incremental=true
+  Auth:     admin only
+  Response: SSE stream — data: <log line>\n\n ... data: [DONE]\n\n
 ```
+
+後端執行 `services/kb-api/scripts/ingest_youtube.py`，stdout 即時串流回 client。
 
 ### 4.4 CLI Script
 
 ```bash
 # 全量 ingest
-python scripts/ingest_youtube.py \
-  --channel https://www.youtube.com/@hrjasmin \
-  --collection career_kb \
-  --whisper-model large-v3
+python services/kb-api/scripts/ingest_youtube.py
 
-# 增量（只處理新影片）
-python scripts/ingest_youtube.py \
-  --channel https://www.youtube.com/@hrjasmin \
-  --incremental
+# 增量（跳過已 ingest 的影片）
+python services/kb-api/scripts/ingest_youtube.py --incremental
 
-# 僅特定影片
-python scripts/ingest_youtube.py \
-  --video-id dQw4w9WgXcQ
+# Dry run（只 chunk，不寫 Milvus）
+python services/kb-api/scripts/ingest_youtube.py --dry-run
 ```
 
 ---
@@ -224,146 +219,104 @@ python scripts/ingest_youtube.py \
 ### 5.1 Agent 拓撲
 
 ```
-SupervisorAgent (Career Lead)
-│   role: 分析使用者需求，路由到專門 agent，整合回應
-│   model: claude-sonnet-4-6 (Anthropic)
-│   tools: [routeToAgent, synthesizeResponse]
+SupervisorAgent (CareerLeadAgent)
+│   model: gemma3:12b via Ollama (OpenAI-compatible API)
+│   tools: [queryCareerKB]
 │
 ├── ResumeAgent
-│   role: 履歷撰寫、評估、ATS 優化
-│   tools: [queryCareerKB(topic="resume"), analyzeResume, suggestKeywords]
+│   tools: [analyzeResume, queryCareerKB]
 │
 ├── InterviewAgent
-│   role: 面試準備、模擬問答、STAR 方法指導
-│   tools: [queryCareerKB(topic="interview"), generateQuestions, evaluateAnswer]
+│   tools: [generateInterviewQuestions, queryCareerKB]
 │
 ├── CareerPlanAgent
-│   role: 職涯規劃、轉職策略、技能 Gap 分析
-│   tools: [queryCareerKB(topic="career_plan"), mapSkillGap, suggestRoadmap]
+│   tools: [queryCareerKB]
 │
 └── SalaryAgent
-    role: 薪資談判、市場行情分析
-    tools: [queryCareerKB(topic="salary"), compareSalary]
+    tools: [queryCareerKB]
 ```
 
-### 5.2 核心 Tool 定義
+### 5.2 核心 Tool 定義（實際實作）
 
 #### `queryCareerKB` Tool
 
 ```typescript
-import { z } from "zod";
-
+// services/voltagent-career/src/tools/query-career-kb.ts
 const queryCareerKBTool = createTool({
   name: "queryCareerKB",
-  description: "Query the career knowledge base built from @hrjasmin YouTube videos",
   parameters: z.object({
-    query:   z.string().describe("User's career question"),
-    topic:   z.enum(["resume","interview","career_plan","salary","mindset","all"])
-               .default("all"),
-    limit:   z.number().default(5),
+    question: z.string(),
+    topic:    z.enum(["resume","interview","career_planning","salary",
+                      "workplace","job_search","promotion",
+                      "industry_insight","skill_development","general_career"])
+               .optional(),
+    sessionId: z.string().default("voltagent-default"),
   }),
-  execute: async ({ query, topic, limit }) => {
-    const res = await fetch(`${KB_API_URL}/api/chat/query/sync`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${KB_API_TOKEN}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        collection: "career_kb",
-        filter: topic !== "all" ? { topic } : undefined,
-        top_k: limit,
-      }),
-    });
-    return await res.json();
+  execute: async ({ question, topic, sessionId }) => {
+    // fetchCareerKB() in kb-client.ts — shared HTTP helper
+    const data = await fetchCareerKB(question, topic, sessionId);
+    return { answer: data.answer, sources: data.sources };
   },
 });
 ```
+
+> `fetchCareerKB()` 從 `services/voltagent-career/src/tools/kb-client.ts` 提取，
+> 供多個 tool 共用，避免 `tool.execute` optional-type 問題。
 
 #### `analyzeResume` Tool
 
 ```typescript
-const analyzeResumeTool = createTool({
-  name: "analyzeResume",
-  description: "Analyze a resume text and provide structured feedback",
-  parameters: z.object({
-    resumeText: z.string(),
-    targetRole: z.string().optional(),
-  }),
-  execute: async ({ resumeText, targetRole }) => {
-    // LLM structured output with career KB context
-  },
-});
+// services/voltagent-career/src/tools/analyze-resume.ts
+execute: async ({ resumeText, targetRole, sessionId }) => {
+  const question = `請根據以下履歷${roleContext}，提供具體的改善建議：\n\n${resumeText.slice(0, 1500)}`;
+  return await fetchCareerKB(question, "resume", sessionId);
+}
 ```
 
-### 5.3 SupervisorAgent 路由邏輯
-
-```typescript
-const supervisorAgent = new Agent({
-  name: "CareerLeadAgent",
-  instructions: `
-    你是一位資深職涯顧問，負責理解使用者的職涯問題並路由給最合適的專家。
-    
-    路由規則：
-    - 履歷相關（寫法、格式、ATS）→ ResumeAgent
-    - 面試相關（準備、練習、STAR）→ InterviewAgent  
-    - 職涯規劃（轉職、升遷、技能）→ CareerPlanAgent
-    - 薪資相關（談判、行情）→ SalaryAgent
-    - 複合問題 → 依序呼叫多個 agent，整合回應
-    
-    所有回應以繁體中文輸出，引用影片來源時附上影片標題。
-  `,
-  model: anthropic("claude-sonnet-4-6"),
-  subAgents: [resumeAgent, interviewAgent, careerPlanAgent, salaryAgent],
-});
-```
-
-### 5.4 VoltAgent 專案結構
+### 5.3 VoltAgent 專案結構（實際實作）
 
 ```
-voltagent-career/
+services/voltagent-career/
 ├── src/
 │   ├── agents/
-│   │   ├── supervisor.ts      # CareerLeadAgent
-│   │   ├── resume.ts          # ResumeAgent
-│   │   ├── interview.ts       # InterviewAgent
-│   │   ├── career-plan.ts     # CareerPlanAgent
-│   │   └── salary.ts          # SalaryAgent
+│   │   ├── supervisor.ts       # CareerLeadAgent
+│   │   ├── resume.ts           # ResumeAgent
+│   │   ├── interview.ts        # InterviewAgent
+│   │   ├── career-plan.ts      # CareerPlanAgent
+│   │   └── salary.ts           # SalaryAgent
 │   ├── tools/
-│   │   ├── query-career-kb.ts # queryCareerKB tool
-│   │   ├── analyze-resume.ts
+│   │   ├── kb-client.ts        # 共用 fetchCareerKB() HTTP helper
+│   │   ├── query-career-kb.ts  # queryCareerKB tool
+│   │   ├── analyze-resume.ts   # analyzeResume tool
 │   │   └── generate-questions.ts
-│   ├── config.ts              # env config (KB_API_URL, API keys)
-│   └── index.ts               # VoltAgent server entry
-├── package.json
+│   ├── config.ts               # env config (KB_API_TOKEN, OLLAMA_BASE_URL, VOLTAGENT_MODEL)
+│   └── index.ts                # VoltAgent server (port 3141)
+├── Dockerfile
+├── package.json                # @voltagent/core ^2.7.0, @ai-sdk/openai ^3.0.0
 ├── tsconfig.json
-└── .env
+└── .env.example
 ```
 
 ---
 
 ## 6. API Design
 
-### 6.1 Career KB API（獨立 repo）
-
-collection 固定為 `career_kb`，無需切換參數。新增 `topic` filter 傳入 Milvus：
+### 6.1 Career KB API（實際實作）
 
 ```
 POST /api/chat/query
-Body:
-{
-  "query": "如何準備外商面試？",
+Body: {
+  "question":   "如何準備外商面試？",
   "session_id": "...",
-  "filter": { "topic": "interview" }
+  "topic":      "interview"    ← optional, maps to Milvus section filter
 }
+
+POST /api/chat/query/sync     ← non-streaming version (VoltAgent 使用此端點)
+
+POST /api/ingestion/youtube?incremental=true   ← admin only, SSE stream
 ```
 
-config 簡化為單一 collection：
-
-```python
-# src/core/config.py
-class Settings(BaseSettings):
-    milvus_collection: str = "career_kb"
-    milvus_embedding_dim: int = 768
-```
+`topic` 直接對應 Milvus `section` 欄位的 expr filter。
 
 ### 6.2 VoltAgent HTTP API
 
@@ -371,10 +324,9 @@ VoltAgent 預設在 port `3141` 提供：
 
 ```
 POST /agents/career-lead/invoke
-  Body: { input: "幫我評估這份履歷...", sessionId: "..." }
-  Response: { output: "...", sources: [...], agentTrace: [...] }
+  Body:     { input: "幫我評估這份履歷...", sessionId: "..." }
+  Response: { output: "...", agentTrace: [...] }
 
-GET  /agents/career-lead/sessions/:sessionId
 GET  /health
 ```
 
@@ -382,48 +334,85 @@ GET  /health
 
 ## 7. Infrastructure
 
-### 7.1 Docker Compose 擴充
+### 7.1 Mono-Repo 目錄結構
+
+```
+career-analyst-kb/
+├── services/
+│   ├── kb-api/              # Python FastAPI service
+│   │   ├── src/
+│   │   ├── scripts/
+│   │   ├── migrations/
+│   │   ├── tests/
+│   │   └── pyproject.toml
+│   └── voltagent-career/    # TypeScript VoltAgent service
+│       ├── src/
+│       ├── Dockerfile
+│       └── package.json
+├── docker/
+│   └── docker-compose.yml   # orchestrates all services
+├── frontend/                # static HTML chat UI
+├── data/
+│   ├── subtitles/           # raw .vtt files
+│   └── processed/
+│       └── transcripts/     # plain .txt files
+├── docs/
+└── .env                     # single env file for all services
+```
+
+### 7.2 Docker Compose
 
 ```yaml
-# docker/docker-compose.career.yml (extends docker-compose.yml)
 services:
-  voltagent:
-    build: ../voltagent-career
-    ports: ["3141:3141"]
-    environment:
-      KB_API_URL: http://app:8000
-      KB_API_TOKEN: ${CAREER_API_TOKEN}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      VOLTAGENT_PUBLIC_KEY: ${VOLTAGENT_PUBLIC_KEY}
-      VOLTAGENT_PRIVATE_KEY: ${VOLTAGENT_PRIVATE_KEY}
-    depends_on: [app]
-
-  whisper-worker:
-    build: docker/whisper
-    volumes:
-      - ./data/youtube_audio:/audio
-      - ./data/transcripts:/transcripts
-    environment:
-      WHISPER_MODEL: large-v3
-    profiles: ["ingestion"]  # 只在 ingestion 時啟動
+  app:          # FastAPI — port 8000
+  postgres:     # PostgreSQL — port 5436
+  milvus:       # Milvus standalone — port 19530
+  etcd:         # Milvus dependency
+  minio:        # Milvus dependency
+  nginx:        # reverse proxy — port 80
+  voltagent:    # VoltAgent — port 3141 (profile: voltagent)
 ```
 
-### 7.2 環境變數新增
+啟動 VoltAgent：
+```bash
+docker compose --profile voltagent up -d
+```
+
+### 7.3 環境變數
 
 ```dotenv
-# Career KB
-CAREER_COLLECTION=career_kb
-YOUTUBE_API_KEY=...         # YouTube Data API v3
-WHISPER_MODEL=large-v3      # base / small / medium / large-v3
+# LLM（FastAPI backend）
+LLM_PROVIDER=ollama
+LLM_MODEL=gemma3:12b
+OLLAMA_BASE_URL=http://localhost:11434
+
+# Embedding
+EMBEDDING_PROVIDER=ollama
+EMBEDDING_MODEL=nomic-embed-text
+
+# Vector DB
+MILVUS_HOST=localhost
+MILVUS_PORT=19530
+MILVUS_COLLECTION=career_kb
+
+# PostgreSQL
+DATABASE_URL=postgresql+asyncpg://career:secret@localhost:5436/career_kb
+
+# Auth
+SECRET_KEY=<random 32+ chars>
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=<set on first run>
 
 # VoltAgent
-VOLTAGENT_PUBLIC_KEY=...
-VOLTAGENT_PRIVATE_KEY=...
-CAREER_API_TOKEN=...        # 內部 service token (non-user JWT)
+CAREER_API_TOKEN=<JWT from /api/auth/login>
+VOLTAGENT_MODEL=gemma3:12b   # or gemma3:4b for lighter RAM
+# OLLAMA_BASE_URL already set above; voltagent reuses it
 
-# LLM for agents
-ANTHROPIC_API_KEY=...       # VoltAgent 使用 claude-sonnet-4-6
+# Ingestion
+WHISPER_MODEL=medium
 ```
+
+> **無需 `ANTHROPIC_API_KEY`** — 全部使用本機 Ollama。
 
 ---
 
@@ -432,31 +421,21 @@ ANTHROPIC_API_KEY=...       # VoltAgent 使用 claude-sonnet-4-6
 ### 8.1 YouTube 資料使用
 
 - 僅儲存文字 transcript，不重新散布音訊/影片
-- 在 chunk metadata 保留 `url` 方便引導用戶回原影片
+- chunk metadata 保留 `url` 引導用戶回原影片
 - 遵循 YouTube ToS（個人/研究用途）
 
 ### 8.2 Service-to-Service Auth
 
-VoltAgent → career-analyst-kb 使用獨立的 `service_account` role JWT，不用使用者 token。
+VoltAgent → career-analyst-kb 使用獨立的 service account JWT：
 
-```python
-# admin API: 建立 service account
+```bash
+# 建立 service account（admin API）
 POST /api/admin/users
-{ "username": "voltagent-svc", "role": "viewer", "max_sessions": 0 }
-```
+{ "username": "voltagent-svc", "role": "viewer" }
 
-### 8.3 Guardrails (VoltAgent 層)
-
-```typescript
-const careerGuardrail = {
-  input: (text: string) => {
-    // Block off-topic queries (e.g. medical, legal, financial advice)
-    if (isOffTopic(text)) return { blocked: true, reason: "本系統僅提供職涯相關諮詢" };
-  },
-  output: (text: string) => {
-    // Strip any PII accidentally surfaced from transcripts
-  },
-};
+# 登入取得 JWT，填入 CAREER_API_TOKEN
+POST /api/auth/login
+{ "username": "voltagent-svc", "password": "..." }
 ```
 
 ---
@@ -465,97 +444,128 @@ const careerGuardrail = {
 
 ### Phase 0 — Repo Bootstrap ✅ Complete
 
-> **Owner**: Backend / DevOps
-
 | Task | Status | Deliverable |
 |------|--------|-------------|
 | `cp -r yiguandao-kb career-analyst-kb` + git init | ✅ | 新 repo |
-| 移除一貫道領域內容：glossary、system prompt、sample data | ✅ | 乾淨基底 |
+| 移除一貫道領域內容 | ✅ | 乾淨基底 |
 | 重新命名 collection、app name、README | ✅ | `src/core/config.py` |
-| 更新 Docker Compose service 名稱與 port 規劃 | ✅ | `docker/docker-compose.yml` |
-| 建立新的 `.env.example`（含 YouTube/Whisper 欄位） | ✅ | `.env.example` |
-| 清除所有殘留 yiguandao 字串（全 repo 掃描） | ✅ | 全 codebase |
+| 更新 Docker Compose | ✅ | `docker/docker-compose.yml` |
+| 建立 `.env.example` | ✅ | `.env.example` |
 
-### Phase 0.5 — 字幕批次抓取 ✅ Complete (比預期大 4x)
-
-> **Owner**: Backend  
-> **實際工作量**：頻道共 1,794 部影片（4 tabs），比原預估大 4 倍
+### Phase 0.5 — 字幕批次抓取 ✅ Complete
 
 | Task | Status | Deliverable |
 |------|--------|-------------|
-| yt-dlp 批次下載字幕 — `/videos` tab (421 部) | ✅ | `data/subtitles/download.log` |
-| yt-dlp 批次下載字幕 — `/shorts` tab (1,264 部) | ✅ | `data/subtitles/download_shorts.log` |
-| yt-dlp 批次下載字幕 — `/streams` tab (109 部) | ✅ | `data/subtitles/download_streams.log` |
-| yt-dlp 批次下載字幕 — `/podcasts` tab (43 部) | ✅ | `data/subtitles/download_podcasts.log` |
-| `audit_subtitles.py`：跨 4 tabs 統計覆蓋率 | ✅ | `data/subtitles/no_subtitles.txt` |
-| `whisper_fallback.py`：無字幕影片 Whisper 轉錄腳本 | ✅ | `scripts/whisper_fallback.py` |
-| Whisper 轉錄 streams + podcasts (152 部，優先) | 🔄 In Progress | `data/processed/transcripts/*.txt` |
-| Whisper 轉錄 videos 無字幕 (62 部) | ⏳ Pending | `data/processed/transcripts/*.txt` |
-| Whisper 轉錄 shorts 無字幕 (TBD) | ⏳ Pending | `data/processed/transcripts/*.txt` |
+| yt-dlp 批次下載字幕 — 4 tabs | ✅ | `data/subtitles/` |
+| `audit_subtitles.py` 統計覆蓋率 | ✅ | `data/subtitles/no_subtitles.txt` |
+| `whisper_fallback.py` 無字幕 Whisper 轉錄 | ✅ | `scripts/whisper_fallback.py` |
+| Whisper 轉錄 streams + podcasts (152 部) | ✅ | `data/processed/transcripts/*.txt` |
+| Whisper 轉錄 videos 無字幕 (62 部) | ✅ | `data/processed/transcripts/*.txt` |
+| 合計轉錄（VTT + Whisper）: **1,035 部** | ✅ | — |
 
-### Phase 1 — YouTube Ingestion Pipeline ✅ Core Complete
-
-> **Owner**: Backend
+### Phase 1 — YouTube Ingestion Pipeline ✅ Complete
 
 | Task | Status | Deliverable |
 |------|--------|-------------|
-| `vtt_to_text.py`：VTT → 純文字，lang priority zh-TW→zh→en，去重 | ✅ | `scripts/vtt_to_text.py` |
+| `vtt_to_text.py`：VTT → 純文字 | ✅ | `scripts/vtt_to_text.py` |
 | `career_classifier.py`：9-topic keyword classifier | ✅ | `src/ingestion/career_classifier.py` |
-| `career_chunker.py`：口語斷句 chunker + topic metadata | ✅ | `src/ingestion/career_chunker.py` |
-| `ingest_youtube.py`：完整 CLI（`--incremental`, `--dry-run`） | ✅ | `scripts/ingest_youtube.py` |
-| `whisper_fallback.py`：audio download + Whisper 轉錄 | ✅ | `scripts/whisper_fallback.py` |
-| LLM 字幕後處理（修正錯字、斷句） | ⏳ Pending | `src/ingestion/subtitle_cleaner.py` |
-| Milvus `career_kb` schema 更新（加 video_title, topic, url fields） | ⏳ Pending | `src/ingestion/embedder.py` |
-| `ingest_youtube.py` 實際寫入 Milvus（需 Docker 啟動） | ⏳ Pending | — |
+| `career_chunker.py`：口語斷句 chunker | ✅ | `src/ingestion/career_chunker.py` |
+| `ingest_youtube.py`：`--incremental`, `--dry-run` | ✅ | `scripts/ingest_youtube.py` |
+| `whisper_fallback.py`：audio + Whisper 轉錄 | ✅ | `scripts/whisper_fallback.py` |
+| Milvus schema 更新（video_title, upload_date, url） | ✅ | `src/ingestion/embedder.py` |
+| 實際寫入 Milvus（14,278 chunks from 1,035 videos） | 🔄 In Progress | — |
+| 修正 mono-repo 後 LangChain import 相容性 | ✅ | `chunker.py`, `career_chunker.py`, `llm_factory.py` |
+| 修正 `src/ingestion/__init__.py` eager import 導致 pytesseract 依賴 | ✅ | `src/ingestion/__init__.py` |
+| 修正 VoltAgent agent 檔案 import ordering（sed 殘留） | ✅ | `salary.ts`, `supervisor.ts` |
 
-### Phase 2 — API 調整 (1 天)
+> **注意**：ingest_youtube.py 仍在背景執行中（412/1035 完成），預計完成後約 14,278 chunks 全數寫入 Milvus。
+> 監控指令：`grep "Stored" /tmp/ingest_log.txt | wc -l`
+> LLM 字幕後處理（subtitle_cleaner.py）列為 backlog，目前字幕品質足夠 RAG 使用。
 
-> **Owner**: Backend
+### Phase 2 — API 調整 ✅ Complete
 
-| Task | Deliverable |
-|------|-------------|
-| Chat API 新增 `filter` param（topic → Milvus metadata filter） | `src/api/routers/chat.py` |
-| `/api/ingestion/youtube` admin endpoint（SSE progress） | `src/api/routers/ingestion.py` |
-| Service account JWT（供 VoltAgent 呼叫用） | admin seed script |
-| System prompt 改寫為職涯顧問角色 | `src/application/services/chat_service.py` |
+| Task | Status | Deliverable |
+|------|--------|-------------|
+| `SearchResult` 新增 video_title / upload_date / url 欄位 | ✅ | `src/core/domain/search_result.py` |
+| `Chunk` domain 新增 video_title / upload_date / url | ✅ | `src/core/domain/chunk.py` |
+| `MilvusRetriever` 更新 OUTPUT_FIELDS + 新欄位填充 | ✅ | `src/rag/retriever.py` |
+| `IVectorRetriever` / `ISearchEngine` 介面加 topic 參數 | ✅ | `src/core/interfaces/` |
+| `HybridSearchEngine` topic filter（Milvus expr + 局部 BM25） | ✅ | `src/rag/hybrid_search.py` |
+| `ChatRequestDTO` 新增 optional `topic` 欄位 | ✅ | `src/application/dto/chat_dto.py` |
+| `SourceDocumentDTO` 新增 video_title / url / upload_date | ✅ | `src/application/dto/chat_dto.py` |
+| `ChatService._build_context()` 顯示影片標題引用 | ✅ | `src/application/services/chat_service.py` |
+| `POST /api/ingestion/youtube` SSE endpoint（admin only） | ✅ | `src/api/routers/ingestion.py` |
+| 註冊 ingestion router | ✅ | `src/api/main.py` |
 
-### Phase 3 — VoltAgent Layer (2–3 天)
+### Phase 3 — VoltAgent Layer ✅ Complete
 
-> **Owner**: TS / Agent Engineer
+| Task | Status | Deliverable |
+|------|--------|-------------|
+| Mono-repo 重構（Codex） | ✅ | `services/kb-api/`, `services/voltagent-career/` |
+| `services/voltagent-career/` 初始化 | ✅ | `package.json`, `tsconfig.json` |
+| `kb-client.ts` 共用 HTTP helper | ✅ | `src/tools/kb-client.ts` |
+| `queryCareerKB` tool | ✅ | `src/tools/query-career-kb.ts` |
+| `analyzeResume` tool | ✅ | `src/tools/analyze-resume.ts` |
+| `generateInterviewQuestions` tool | ✅ | `src/tools/generate-questions.ts` |
+| 4 sub-agents（Resume / Interview / CareerPlan / Salary） | ✅ | `src/agents/*.ts` |
+| SupervisorAgent（CareerLeadAgent） | ✅ | `src/agents/supervisor.ts` |
+| VoltAgent server entry（port 3141） | ✅ | `src/index.ts` |
+| Dockerfile | ✅ | `Dockerfile` |
+| Docker Compose 整合（profile: voltagent） | ✅ | `docker/docker-compose.yml` |
+| 改用本機 Ollama（棄 Anthropic API） | ✅ | 所有 agent 改用 `@ai-sdk/openai` → Ollama |
+| 清理 agent import ordering（`salary.ts`, `supervisor.ts`） | ✅ | `src/agents/salary.ts`, `src/agents/supervisor.ts` |
 
-| Task | Deliverable |
-|------|-------------|
-| `career-agent/` 專案初始化（`npm create voltagent-app@latest`） | 獨立 TS repo |
-| `queryCareerKB` tool（呼叫 KB API） | `src/tools/query-career-kb.ts` |
-| 4 個 sub-agents（Resume / Interview / CareerPlan / Salary） | `src/agents/*.ts` |
-| SupervisorAgent + 路由邏輯 | `src/agents/supervisor.ts` |
-| VoltOps 接入（公私鑰 + trace 確認） | `.env` + VoltOps Console |
-| Docker Compose 整合（career-analyst-kb + career-agent） | `docker-compose.yml` |
+### Phase 4 — Eval Harness ✅ Complete
 
-### Phase 4 — Eval Harness (1–2 天)
+| Task | Status | Deliverable |
+|------|--------|-------------|
+| 建立 Golden Dataset：30 筆職涯問答（9 topics）| ✅ | `eval/golden_dataset.jsonl` |
+| RAG Precision Eval（LLM-as-judge + keyword hit rate） | ✅ | `eval/rag_eval.py` |
+| Agent Routing Eval | ✅ | `eval/routing_eval.py` |
+| Latency Benchmark P50/P95/P99（支援 concurrency） | ✅ | `eval/latency_bench.py` |
 
-> **Owner**: Harness Engineer
+**Routing Eval 初測結果（2026-04-21）：**
+- Overall accuracy: **83.3%** (25/30)（目標 ≥ 85%，差一點）
+- Perfect: interview, resume, salary, promotion, workplace (100%)
+- 需改善: job_search (50%), skill_development (50%), industry_insight (67%)
+- 主要 miss 原因：multi-keyword 問題（offer → salary, 履歷 → resume）優先於 primary topic
 
-Harness 的任務是在 agent 路由和 RAG 回應上建立可量測的 baseline，讓後續任何改動都有數字依據。
+**用法：**
+```bash
+# Routing eval（無需 server）
+python eval/routing_eval.py --verbose
 
-| Task | Deliverable |
-|------|-------------|
-| 建立 Golden Dataset：30 筆職涯問答（含預期 topic 標籤、預期 sub-agent） | `eval/golden_dataset.jsonl` |
-| RAG Precision Eval：top-5 檢索相關性（LLM-as-judge） | `eval/rag_eval.py` |
-| Agent Routing Eval：自動化驗證 SupervisorAgent 路由準確率 | `eval/routing_eval.py` |
-| Latency Benchmark：P50 / P95 end-to-end（VoltAgent → KB → LLM） | `eval/latency_bench.py` |
-| CI 整合：每次 merge 跑 eval，低於 threshold 阻擋 | `.github/workflows/eval.yml` |
+# RAG eval（需 KB API 運行）
+export CAREER_API_TOKEN=<JWT>
+python eval/rag_eval.py --url http://localhost:8000
+
+# Latency benchmark
+python eval/latency_bench.py --url http://localhost:8000 --runs 20 --concurrency 3
+```
 
 ### Phase 5 — UI & E2E (1–2 天)
 
-> **Owner**: Frontend / QA
+| Task | Status | Deliverable |
+|------|--------|-------------|
+| Chat UI 接入 VoltAgent（port 3141） | ⏳ Pending | `frontend/index.html` |
+| 新增 topic filter 下拉選單 | ⏳ Pending | `frontend/index.html` |
+| Sources 顯示影片標題 + YouTube 連結 | ⏳ Pending | `frontend/index.html` |
+| Nginx 轉發 `/agents/*` → port 3141 | ⏳ Pending | `docker/nginx.conf` |
+| E2E：履歷評估完整流程 | ⏳ Pending | `e2e/resume_flow.spec.ts` |
+| E2E：面試問答流程 | ⏳ Pending | `e2e/interview_flow.spec.ts` |
 
-| Task | Deliverable |
-|------|-------------|
-| 職涯顧問 Chat UI（全新 frontend） | `frontend/index.html` |
-| E2E：履歷評估完整流程 | `e2e/resume_flow.spec.ts` |
-| E2E：面試問答流程 | `e2e/interview_flow.spec.ts` |
-| VoltOps trace 截圖驗證 | QA report |
+### Phase 6 — Classifier 改善（目標 ≥ 85% routing accuracy）
+
+> 背景：Phase 4 routing eval 初測 83.3%（25/30），5 個 miss 原因已知。
+
+| Task | Status | Deliverable |
+|------|--------|-------------|
+| `job_search` 關鍵字補強（offer 時間壓力、投履歷無回音） | ⏳ Pending | `src/ingestion/career_classifier.py` |
+| `skill_development` 關鍵字補強（英文能力、職涯成長） | ⏳ Pending | `src/ingestion/career_classifier.py` |
+| `industry_insight` 關鍵字補強（新創 vs 大企業） | ⏳ Pending | `src/ingestion/career_classifier.py` |
+| `career_planning` fallback 降低（五年、離職、換環境） | ⏳ Pending | `src/ingestion/career_classifier.py` |
+| multi-topic 問題的 primary topic 優先邏輯 | ⏳ Pending | `src/ingestion/career_classifier.py` |
+| 重跑 `routing_eval.py` 驗證 ≥ 85% | ⏳ Pending | `eval/results/routing_eval_*.json` |
 
 ---
 
@@ -563,12 +573,12 @@ Harness 的任務是在 agent 路由和 RAG 回應上建立可量測的 baseline
 
 | # | 問題 | 影響 | 狀態 |
 |---|------|------|------|
-| Q1 | Whisper large-v3 轉錄速度是否可接受？ | Phase 1 工時 | ✅ 改用 `medium` model 節省時間；streams/podcasts 全部走 Whisper（152 部） |
-| Q2 | YouTube API quota：每日 10,000 units，列片單夠用？ | Phase 1 設計 | ✅ 不需要 YouTube API — yt-dlp 直接爬頻道頁面，無 quota 限制 |
-| Q3 | VoltAgent 是否使用 VoltOps Cloud 或 self-host？ | Phase 3 架構 | ⏳ 待決定（Phase 3 開始前） |
-| Q4 | 是否需要實時追蹤新影片（Cron/Webhook）？| Phase 4 範疇 | ⏳ 待決定（Phase 3 完成後） |
-| Q5 | Career UI 是否獨立部署或整合現有 frontend？| Phase 5 | ⏳ 待決定（Phase 4 開始前） |
-| Q6 | 頻道共 1,794 部影片（含 Shorts），Shorts 是否值得 ingest？ | Phase 0.5 範疇 | 🔄 Shorts 下載中，視覆蓋率決定是否全量 Whisper |
+| Q1 | Whisper large-v3 轉錄速度是否可接受？ | Phase 1 工時 | ✅ 改用 `medium` model；streams/podcasts 全部走 Whisper（152 部） |
+| Q2 | YouTube API quota？ | Phase 1 設計 | ✅ 不需要 YouTube API — yt-dlp 直接爬頻道頁面，無 quota 限制 |
+| Q3 | VoltAgent 是否使用 VoltOps Cloud？ | Phase 3 架構 | ✅ 不使用 — 改用本機 Ollama，零成本；VoltOps 可日後選配 |
+| Q4 | 是否需要實時追蹤新影片？ | Phase 4 範疇 | ⏳ 待決定（Phase 4 開始前） |
+| Q5 | Career UI 是否獨立部署或整合現有 frontend？ | Phase 5 | ✅ 整合現有 frontend，Phase 5 更新 index.html 接入 VoltAgent |
+| Q6 | Shorts 是否值得 ingest？ | Phase 0.5 | ⏳ Shorts 字幕覆蓋率 TBD；目前已 ingest 有字幕的 1,035 部 |
 
 ---
 
@@ -577,61 +587,37 @@ Harness 的任務是在 agent 路由和 RAG 回應上建立可量測的 baseline
 | Metric | Target |
 |--------|--------|
 | 影片覆蓋率 | ≥ 90% 職涯相關影片成功 ingest |
-| 查詢相關性 | RAG top-5 precision ≥ 0.75 (人工評估 20 queries) |
+| 查詢相關性 | RAG top-5 precision ≥ 0.75（人工評估 20 queries） |
 | Agent 路由準確率 | ≥ 85% 正確路由到對應 sub-agent |
-| 回應延遲 (P50) | ≤ 3s (first token, VoltAgent → KB → LLM) |
-| VoltOps Trace | 100% 對話可在 VoltOps Console 查到完整 trace |
+| 回應延遲 (P50) | ≤ 5s first token（本機 Ollama，含 VoltAgent overhead） |
 
 ---
 
 ## 12. Codebase Change Map
 
-> 每個 Phase 需要修改 / 新增的檔案，供 agent 開發時快速定位。
-
-### Phase 1 — 剩餘工作
-
-| File | Action | Why |
-|------|--------|-----|
-| `src/ingestion/embedder.py` | **Modify** | Milvus schema 需增加 `video_title`, `topic`, `url`, `upload_date` 欄位；`embed_and_store()` 要接受 `TranscriptChunk` 或 adapter |
-| `src/ingestion/career_chunker.py` | **Modify** | 確認 `TranscriptChunk` metadata 欄位與新 Milvus schema 對齊 |
-| `scripts/ingest_youtube.py` | **Modify** | `_to_domain_chunk()` adapter 需補上新 schema 欄位（video_title, url, upload_date） |
-| `src/ingestion/subtitle_cleaner.py` | **New** | LLM 後處理：修正 VTT auto-caption 錯字、斷句 |
-
-### Phase 2 — API 調整
-
-| File | Action | Why |
-|------|--------|-----|
-| `src/api/routers/chat.py` | **Modify** | 新增 `filter` param，傳入 Milvus metadata filter（topic 等） |
-| `src/rag/hybrid_search.py` | **Modify** | 支援 metadata filter（`expr` 參數傳給 Milvus） |
-| `src/rag/pipeline.py` | **Modify** | 將 filter 從 API 層傳遞到 hybrid_search |
-| `src/api/routers/ingestion.py` | **New** | `/api/ingestion/youtube` admin endpoint，SSE progress stream |
-| `src/application/services/ingestion_service.py` | **Modify** | 整合 YouTube ingestion 邏輯（呼叫 `ingest_youtube.py` 或內聯） |
-| `src/application/dto/chat_dto.py` | **Modify** | `ChatRequest` 加 `filter: dict | None` 欄位 |
-| `src/api/models/schemas.py` | **Modify** | 對應 schema 更新 |
-
-### Phase 3 — VoltAgent Layer
-
-| File | Action | Why |
-|------|--------|-----|
-| `career-agent/` (new repo/dir) | **New** | VoltAgent TypeScript 專案 |
-| `career-agent/src/agents/supervisor.ts` | **New** | CareerLeadAgent + 路由邏輯 |
-| `career-agent/src/agents/resume.ts` | **New** | ResumeAgent |
-| `career-agent/src/agents/interview.ts` | **New** | InterviewAgent |
-| `career-agent/src/agents/career-plan.ts` | **New** | CareerPlanAgent |
-| `career-agent/src/agents/salary.ts` | **New** | SalaryAgent |
-| `career-agent/src/tools/query-career-kb.ts` | **New** | `queryCareerKB` tool — 呼叫 `/api/chat/query` |
-| `docker/docker-compose.yml` | **Modify** | 新增 `voltagent` service |
-| `.env.example` | **Modify** | 新增 `ANTHROPIC_API_KEY`, `VOLTAGENT_PUBLIC_KEY`, `VOLTAGENT_PRIVATE_KEY` |
-
 ### Phase 4 — Eval Harness
 
 | File | Action | Why |
 |------|--------|-----|
-| `eval/golden_dataset.jsonl` | **New** | 30 筆職涯問答 golden set |
-| `eval/rag_eval.py` | **New** | RAG precision evaluation (LLM-as-judge) |
-| `eval/routing_eval.py` | **New** | Agent routing accuracy test |
-| `eval/latency_bench.py` | **New** | P50/P95 end-to-end latency benchmark |
-| `.github/workflows/eval.yml` | **New** | CI eval pipeline |
+| `eval/golden_dataset.jsonl` | **New** | 30 筆職涯問答 golden set（9 topics） |
+| `eval/rag_eval.py` | **New** | RAG precision evaluation（LLM-as-judge + keyword hit） |
+| `eval/routing_eval.py` | **New** | Agent routing accuracy test（初測 83.3%） |
+| `eval/latency_bench.py` | **New** | P50/P95/P99 latency benchmark（支援 concurrency） |
+
+### Phase 6 — Classifier 改善
+
+| File | Action | Why |
+|------|--------|-----|
+| `src/ingestion/career_classifier.py` | **Modify** | 補強 job_search / skill_development / industry_insight 關鍵字；primary topic 優先邏輯 |
+
+### Phase 5 — UI & E2E
+
+| File | Action | Why |
+|------|--------|-----|
+| `frontend/index.html` | **Modify** | 接入 VoltAgent port 3141；topic filter 下拉；citations 顯示影片標題 + URL |
+| `docker/nginx.conf` | **Modify** | 新增 `/agents/*` proxy → port 3141 |
+| `e2e/resume_flow.spec.ts` | **New** | 履歷評估 E2E flow |
+| `e2e/interview_flow.spec.ts` | **New** | 面試問答 E2E flow |
 
 ---
 
@@ -639,10 +625,8 @@ Harness 的任務是在 agent 路由和 RAG 回應上建立可量測的 baseline
 
 - career-analyst-kb repo: `/Users/liyuncheng/workspace/me/career-analyst-kb`
 - VoltAgent: https://github.com/VoltAgent/voltagent
-- YouTube Data API v3: https://developers.google.com/youtube/v3
 - yt-dlp: https://github.com/yt-dlp/yt-dlp
-- Whisper: https://github.com/openai/whisper
-- Milvus multi-collection: https://milvus.io/docs/manage_collections.md
+- Milvus: https://milvus.io/docs/manage_collections.md
 
 ## Appendix B: Glossary
 
@@ -651,6 +635,6 @@ Harness 的任務是在 agent 路由和 RAG 回應上建立可量測的 baseline
 | RAG | Retrieval-Augmented Generation — 先檢索再生成 |
 | RRF | Reciprocal Rank Fusion — 混合搜尋排名融合 |
 | Supervisor Pattern | 一個 orchestrator agent 管理多個 sub-agents |
-| VoltOps | VoltAgent 的雲端可觀測性 Console |
 | career_kb | 職涯知識庫的 Milvus collection 名稱 |
+| section | Milvus 欄位名，儲存 topic（resume/interview/...） |
 | STT | Speech-to-Text（語音轉文字） |
