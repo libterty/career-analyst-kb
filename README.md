@@ -1,6 +1,6 @@
 # Career Analyst KB — 職涯分析師知識庫系統
 
-基於 RAG（Retrieval-Augmented Generation）架構的職涯問答系統，知識來源為 YouTube 頻道 YouTube 職涯影片字幕，支援混合向量搜索（Dense + BM25 + RRF）與 VoltAgent 多代理人協作。預設使用本機 **Ollama + Gemma3:12b**，零成本運行。
+基於 RAG（Retrieval-Augmented Generation）架構的職涯問答系統，知識來源為 YouTube 頻道 YouTube 職涯影片字幕，支援混合向量搜索（Dense + BM25 + RRF）與 VoltAgent 多代理人協作。
 
 ---
 
