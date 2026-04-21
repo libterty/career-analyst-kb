@@ -554,6 +554,62 @@ python eval/latency_bench.py --url http://localhost:8000 --runs 20 --concurrency
 | E2E：履歷評估完整流程 | ⏳ Pending | `e2e/resume_flow.spec.ts` |
 | E2E：面試問答流程 | ⏳ Pending | `e2e/interview_flow.spec.ts` |
 
+### Phase 8 — 換模型至 Qwen3.6-35B-A3B Reasoning Distilled（Mac M3 Max 36GB）
+
+> **背景**：Qwen3.6-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled 是 Qwen 3.6 35B（MoE，3B active）經 Claude Opus 4.6 CoT 蒸餾資料 SFT 的社群模型。GGUF 格式可透過 Ollama 直接載入，以 M3 Max 36GB 記憶體可完整容納（模型約 20–24 GB，量化 Q4_K_M）。目標是用 Qwen 的 agentic 編碼底座 + Claude Opus 推理邏輯取代 Gemma3:12b，提升多步推理品質。
+
+#### 8.1 硬體與模型載入
+
+| Task | Status | Deliverable |
+| ---- | ------ | ----------- |
+| 從 HuggingFace 下載 GGUF（Q4_K_M，~22 GB）| ⏳ Pending | `~/.ollama/models/` |
+| `ollama create` 建立本機 Modelfile | ⏳ Pending | `models/Modelfile.qwen36b` |
+| 驗證 M3 Max 36GB 記憶體可完整 GPU offload | ⏳ Pending | `ollama run` + `htop` 確認 Metal 使用率 |
+| 測量冷啟動 / first-token 延遲（對比 Gemma3:12b baseline） | ⏳ Pending | `eval/latency_bench.py` 結果 |
+
+#### 8.2 CoT Reasoning Trace 處理
+
+此模型輸出 Claude Opus 風格的推理軌跡（`<think>…</think>` 或類似結構）再給出最終回答。需要在 API 層剝離推理段落。
+
+| Task | Status | Deliverable |
+| ---- | ------ | ----------- |
+| 在 `LLMFactory` / provider 層新增 `strip_reasoning_trace()` 工具函式 | ⏳ Pending | `services/kb-api/src/core/llm_factory.py` |
+| SSE stream 過濾：`<think>` block 轉為 debug log，不送到前端 | ⏳ Pending | `services/kb-api/src/infrastructure/llm/ollama_provider.py` |
+| 可選 `X-Debug-Reasoning: true` header 讓管理員看到完整推理鏈 | ⏳ Pending | `services/kb-api/src/api/routers/chat.py` |
+
+#### 8.3 Prompt 微調（Prompt Tuning）
+
+Qwen3.6 Reasoning Distilled 最佳化方向：明確指示模型先思考再回答，並要求引用具體來源。
+
+| Task | Status | Deliverable |
+| ---- | ------ | ----------- |
+| KB API system prompt 新增 CoT 引導句（「請先分析問題背景，再給出具體建議」） | ⏳ Pending | `services/kb-api/src/application/services/chat_service.py` |
+| VoltAgent SupervisorAgent instructions 加入路由推理指示（要求列出路由理由再決定） | ⏳ Pending | `services/voltagent-career/src/agents/supervisor.ts` |
+| ResumeAgent / InterviewAgent / CareerPlanAgent / SalaryAgent instructions 各增加 STAR / 量化 / 步驟化格式要求 | ⏳ Pending | `services/voltagent-career/src/agents/*.ts` |
+| `VOLTAGENT_MODEL` / `LLM_MODEL` env var 統一切換至新模型名稱 | ⏳ Pending | `.env.example`, `services/kb-api/src/core/config.py` |
+
+#### 8.4 Fine-tune 資料準備（選項）
+
+> 若本機 SFT 效果不理想，可用 Unsloth + LoRA 在職涯問答 golden dataset 上做領域微調。
+
+| Task | Status | Deliverable |
+| ---- | ------ | ----------- |
+| 將 `eval/golden_dataset.jsonl` 轉換為 SFT 格式（instruction / input / output） | ⏳ Pending | `eval/sft_dataset.jsonl` |
+| 補充 50–100 筆職涯 CoT 範例（繁體中文，含推理過程） | ⏳ Pending | `eval/sft_dataset.jsonl` |
+| Unsloth LoRA fine-tune 腳本（4-bit，M3 Max 可跑） | ⏳ Pending | `eval/finetune/finetune_qwen36b.py` |
+| 匯出 GGUF 並以 `ollama create` 更新本機模型 | ⏳ Pending | `models/Modelfile.qwen36b-finetuned` |
+
+#### 8.5 Eval 驗收
+
+| Task | Status | Deliverable |
+| ---- | ------ | ----------- |
+| 重跑 `routing_eval.py`（目標 ≥ 88%） | ⏳ Pending | `eval/results/routing_eval_qwen36b_*.json` |
+| 重跑 `rag_eval.py`（目標 relevance ≥ 3.0 / 4.0） | ⏳ Pending | `eval/results/rag_eval_qwen36b_*.json` |
+| 重跑 `latency_bench.py`（目標 P50 ≤ 8s，M3 Max 本機） | ⏳ Pending | `eval/results/latency_bench_qwen36b_*.json` |
+| 更新 README 與 design doc 記錄 baseline → Phase 8 對比結果 | ⏳ Pending | `README.md`, `docs/design-career-analyst-kb.md` |
+
+---
+
 ### Phase 6 — Classifier 改善（目標 ≥ 85% routing accuracy）
 
 > 背景：Phase 4 routing eval 初測 83.3%（25/30），5 個 miss 原因已知。
