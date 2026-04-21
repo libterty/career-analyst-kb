@@ -1,0 +1,30 @@
+{"id": "resume-001", "topic": "resume", "question": "一頁履歷和多頁履歷哪個比較好？什麼情況下可以超過一頁？", "expected_keywords": ["一頁", "多頁", "工作年資", "ATS", "精簡"]}
+{"id": "resume-002", "topic": "resume", "question": "履歷自傳怎麼寫才能吸引 HR 注意？有哪些常見的寫法錯誤？", "expected_keywords": ["自傳", "自我介紹", "具體", "成就", "量化"]}
+{"id": "resume-003", "topic": "resume", "question": "沒有相關工作經驗，應屆畢業生的履歷應該怎麼呈現？", "expected_keywords": ["應屆", "實習", "學生", "專題", "社團"]}
+{"id": "resume-004", "topic": "resume", "question": "如何用 ATS 友善的方式撰寫履歷？關鍵字應該怎麼選？", "expected_keywords": ["ATS", "關鍵字", "格式", "掃描", "職缺描述"]}
+{"id": "interview-001", "topic": "interview", "question": "面試時被問到「你最大的缺點是什麼？」應該怎麼回答？", "expected_keywords": ["缺點", "誠實", "改善", "具體", "成長"]}
+{"id": "interview-002", "topic": "interview", "question": "STAR 方法是什麼？如何用它來回答行為面試問題？", "expected_keywords": ["STAR", "情境", "任務", "行動", "結果"]}
+{"id": "interview-003", "topic": "interview", "question": "面試前應該做哪些準備？如何研究目標公司？", "expected_keywords": ["公司研究", "產品", "文化", "新聞", "面試準備"]}
+{"id": "interview-004", "topic": "interview", "question": "線上視訊面試和現場面試有哪些不同的注意事項？", "expected_keywords": ["視訊", "線上", "環境", "鏡頭", "網路"]}
+{"id": "career-planning-001", "topic": "career_planning", "question": "工作三年了，感覺卡住了不知道下一步該怎麼走，如何規劃下一階段的職涯？", "expected_keywords": ["職涯規劃", "轉職", "升遷", "技能", "方向"]}
+{"id": "career-planning-002", "topic": "career_planning", "question": "想從非本科背景轉職進入科技業，需要做哪些準備？", "expected_keywords": ["轉職", "科技", "非本科", "技能培養", "作品集"]}
+{"id": "career-planning-003", "topic": "career_planning", "question": "什麼時候應該考慮轉職？有哪些跡象說明現在是好時機？", "expected_keywords": ["轉職時機", "倦怠", "成長停滯", "市場行情", "機會"]}
+{"id": "career-planning-004", "topic": "career_planning", "question": "在同一家公司做了五年，是否應該離開換個環境？", "expected_keywords": ["跳槽", "穩定", "成長", "薪資天花板", "新環境"]}
+{"id": "salary-001", "topic": "salary", "question": "面試時被問到期望薪資，應該先開口還是等對方出價？", "expected_keywords": ["期望薪資", "先開口", "市場行情", "談判", "主動"]}
+{"id": "salary-002", "topic": "salary", "question": "如何知道自己目前的薪資是否低於市場水準？如何蒐集薪資資訊？", "expected_keywords": ["薪資行情", "市場水準", "調查", "比較", "數據"]}
+{"id": "salary-003", "topic": "salary", "question": "收到 offer 後如何進行薪資談判？有哪些實用的話術？", "expected_keywords": ["offer", "談判", "話術", "counter offer", "溝通"]}
+{"id": "workplace-001", "topic": "workplace", "question": "遇到不合理的主管或主管的管理方式讓你很痛苦，應該怎麼處理？", "expected_keywords": ["主管", "溝通", "向上管理", "離職", "邊界"]}
+{"id": "workplace-002", "topic": "workplace", "question": "在職場中如何建立好人緣，同時又不失去自己的立場？", "expected_keywords": ["人際關係", "職場", "邊界", "溝通", "信任"]}
+{"id": "workplace-003", "topic": "workplace", "question": "職場上遇到搶功勞的同事，應該如何應對？", "expected_keywords": ["搶功勞", "同事", "溝通", "留下記錄", "向主管反映"]}
+{"id": "job-search-001", "topic": "job_search", "question": "透過人脈找工作和直接投遞履歷，哪種方式效果比較好？", "expected_keywords": ["人脈", "內推", "履歷", "效率", "求職"]}
+{"id": "job-search-002", "topic": "job_search", "question": "同時談多家公司 offer，如何處理 offer 時間壓力？", "expected_keywords": ["多家offer", "時間", "延長", "溝通", "策略"]}
+{"id": "job-search-003", "topic": "job_search", "question": "在職中求職如何保持低調，避免現任公司知道？", "expected_keywords": ["在職求職", "保密", "LinkedIn", "低調", "時間管理"]}
+{"id": "job-search-004", "topic": "job_search", "question": "投了幾十封履歷都沒有回音，可能是什麼原因？", "expected_keywords": ["履歷", "石沉大海", "ATS", "客製化", "關鍵字"]}
+{"id": "promotion-001", "topic": "promotion", "question": "如何讓主管注意到自己的貢獻，增加升遷機會？", "expected_keywords": ["升遷", "曝光", "成果", "向上管理", "主動"]}
+{"id": "promotion-002", "topic": "promotion", "question": "被後進者超越升遷，感到不公平，應該怎麼看待這件事？", "expected_keywords": ["升遷", "公平", "後進超越", "心態", "調整"]}
+{"id": "promotion-003", "topic": "promotion", "question": "升遷評估標準通常有哪些？如何系統性地準備晉升？", "expected_keywords": ["升遷標準", "績效", "領導力", "影響力", "準備"]}
+{"id": "industry-001", "topic": "industry_insight", "question": "台灣的外商公司和本土企業在工作文化上有哪些主要差異？", "expected_keywords": ["外商", "本土", "文化差異", "工作方式", "台灣"]}
+{"id": "industry-002", "topic": "industry_insight", "question": "現在 AI 的發展，哪些職位比較不容易被取代？", "expected_keywords": ["AI", "取代", "職位", "未來", "技能"]}
+{"id": "industry-003", "topic": "industry_insight", "question": "新創公司和大企業各自的優缺點是什麼？如何選擇？", "expected_keywords": ["新創", "大企業", "優缺點", "選擇", "職涯"]}
+{"id": "skill-001", "topic": "skill_development", "question": "在職進修如何找時間學習？如何讓自己持續進步？", "expected_keywords": ["在職進修", "時間管理", "學習", "持續", "技能"]}
+{"id": "skill-002", "topic": "skill_development", "question": "英文能力對職涯發展有多重要？如何在工作中提升英文？", "expected_keywords": ["英文", "職涯", "外商", "溝通", "提升"]}
