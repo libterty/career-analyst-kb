@@ -163,15 +163,29 @@ docker compose --profile voltagent up -d
 
 ## Eval Harness（Phase 4）
 
+三支評測腳本共用一份 **golden dataset**（`eval/golden_dataset.jsonl`，30 題，涵蓋 resume / interview / career_plan / salary / general 五個 topic），結果寫入 `eval/results/`。
+
+| 腳本 | 指標 | 依賴 |
+| ---- | ---- | ---- |
+| `routing_eval.py` | Topic routing accuracy（CareerClassifier） | 不需要啟動 server |
+| `rag_eval.py` | Relevance score 0–4（LLM-as-judge）、keyword hit rate、sources 附帶率 | KB API + Ollama |
+| `latency_bench.py` | avg / P50 / P95 / P99（可設並發） | KB API |
+
+**routing_eval.py** — 直接 import `CareerClassifier` 在本機執行，測試問題是否被分類到預期 topic（允許多 topic 命中）。
+
+**rag_eval.py** — 對 `/api/chat/query/sync` 發送問題，用 Ollama judge model（預設 `gemma3:12b`）對回答打 0–4 分，同時計算 expected_keywords 命中率與來源引用率。
+
+**latency_bench.py** — 以可設定並發數（`--concurrency`）對 KB API 打壓，輸出完整百分位數分布。
+
 ```bash
 # Routing accuracy（不需要 server）
 python eval/routing_eval.py --verbose
 
-# RAG precision（需要 KB API 運行）
+# RAG precision（需要 KB API + Ollama 運行）
 export CAREER_API_TOKEN=<JWT>
 python eval/rag_eval.py --url http://localhost:8000
 
-# Latency benchmark
+# Latency benchmark（並發 3，共 20 次請求）
 python eval/latency_bench.py --url http://localhost:8000 --runs 20 --concurrency 3
 ```
 
