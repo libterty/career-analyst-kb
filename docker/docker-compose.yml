@@ -3,7 +3,7 @@ services:
   app:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: services/kb-api/Dockerfile
     ports:
       - "8000:8000"
     env_file:
@@ -84,6 +84,25 @@ services:
     volumes:
       - milvus_data:/var/lib/milvus
     restart: unless-stopped
+
+  # ── VoltAgent ──────────────────────────────────
+  voltagent:
+    build:
+      context: ../services/voltagent-career
+      dockerfile: Dockerfile
+    ports:
+      - "3141:3141"
+    environment:
+      KB_API_URL: http://app:8000
+      CAREER_API_TOKEN: ${CAREER_API_TOKEN}
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      VOLTAGENT_MODEL: ${VOLTAGENT_MODEL:-gemma3:12b}
+      PORT: 3141
+    depends_on:
+      - app
+    restart: unless-stopped
+    profiles:
+      - voltagent
 
   # ── Nginx ──────────────────────────────────────
   nginx:

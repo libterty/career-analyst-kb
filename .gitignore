@@ -85,3 +85,7 @@ data/embeddings/*
 !data/processed/.gitkeep
 !data/raw/.gitkeep
 !data/embeddings/.gitkeep
+
+tmp/*
+services/voltagent-career/dist/*
+services/voltagent-career/node_modules/*
