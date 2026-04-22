@@ -24,7 +24,10 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
-ROOT_ENV_FILE = Path(__file__).resolve().parents[2].parents[1] / ".env"
+ROOT_ENV_FILE = next(
+    (p / ".env" for p in Path(__file__).resolve().parents if (p / ".env").is_file()),
+    Path(__file__).resolve().parents[1] / ".env",
+)
 
 
 def _get_sync_url() -> str:

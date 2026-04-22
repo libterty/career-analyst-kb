@@ -20,6 +20,8 @@ services:
         condition: service_started
     volumes:
       - ../data:/app/data
+      - ../services/kb-api/src:/app/src
+      - ../services/kb-api/migrations:/app/migrations
     restart: unless-stopped
 
   # ── PostgreSQL ─────────────────────────────────

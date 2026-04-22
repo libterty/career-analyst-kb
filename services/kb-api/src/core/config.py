@@ -15,7 +15,13 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+# Walk up from this file to find the directory containing frontend/
+# Local: …/career-analyst-kb/services/kb-api/src/core/config.py → parents[4]
+# Docker: /app/src/core/config.py → parents[2]
+REPO_ROOT = next(
+    (p for p in Path(__file__).resolve().parents if (p / "frontend").is_dir()),
+    Path(__file__).resolve().parents[2],
+)
 ROOT_ENV_FILE = REPO_ROOT / ".env"
 
 
@@ -30,6 +36,7 @@ class AppSettings(BaseSettings):
         env_file=str(ROOT_ENV_FILE),
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
 
     # ── LLM Provider ─────────────────────────────────────────────────

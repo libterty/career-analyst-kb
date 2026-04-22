@@ -22,7 +22,10 @@ from src.infrastructure.persistence.migrations import run_migrations
 from src.infrastructure.repositories.user_repository import SQLAlchemyUserRepository
 from .routers import admin, auth, chat, documents, ingestion, sessions, feedback, system_prompts
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_ROOT = next(
+    (p for p in Path(__file__).resolve().parents if (p / "frontend").is_dir()),
+    Path(__file__).resolve().parents[2],
+)
 
 # ---- Rate Limiter -------------------------------------------------- #
 # 依來源 IP 進行請求頻率限制，防止濫用
@@ -97,6 +100,17 @@ app.include_router(feedback.router)        # /api/feedback/*
 app.include_router(system_prompts.router)  # /api/admin/system-prompts/*
 app.include_router(ingestion.router)       # /api/ingestion/*
 
+
+# ---- Health Check -------------------------------------------------- #
+# Must be registered before the StaticFiles("/") mount, which shadows any
+# route defined after it.
+
+@app.get("/health", tags=["System"])
+async def health():
+    """健康檢查端點，供 Docker / K8s 探針使用。"""
+    return {"status": "ok", "version": "1.0.0"}
+
+
 # 掛載前端靜態檔案（若前端目錄存在）
 frontend_path = REPO_ROOT / "frontend"
 if frontend_path.is_dir():
@@ -107,14 +121,6 @@ if frontend_path.is_dir():
         return FileResponse(frontend_path / "admin.html")
 
     app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="static")
-
-
-# ---- Health Check -------------------------------------------------- #
-
-@app.get("/health", tags=["System"])
-async def health():
-    """健康檢查端點，供 Docker / K8s 探針使用。"""
-    return {"status": "ok", "version": "1.0.0"}
 
 
 # ---- Global Error Handler ------------------------------------------ #
