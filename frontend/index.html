@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>道輝 — 一貫道知識庫</title>
+  <title>職涯 AI — Career Analyst KB</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
@@ -41,12 +41,7 @@
       height: 100%;
       overflow: hidden;
     }
-
-    .sidebar-header {
-      padding: 12px;
-      border-bottom: 1px solid #333;
-    }
-
+    .sidebar-header { padding: 12px; border-bottom: 1px solid #333; }
     #newChatBtn {
       width: 100%;
       padding: 10px 14px;
@@ -61,11 +56,7 @@
       gap: 8px;
       transition: background 0.15s, border-color 0.15s;
     }
-    #newChatBtn:hover {
-      background: #2a2a2a;
-      border-color: #888;
-    }
-
+    #newChatBtn:hover { background: #2a2a2a; border-color: #888; }
     .session-list {
       flex: 1;
       overflow-y: auto;
@@ -73,7 +64,6 @@
       scrollbar-width: thin;
       scrollbar-color: #444 transparent;
     }
-
     .session-item {
       padding: 9px 10px;
       border-radius: 7px;
@@ -85,14 +75,8 @@
       margin-bottom: 2px;
       position: relative;
     }
-    .session-item:hover {
-      background: #2d2d2d;
-    }
-    .session-item.active {
-      background: #2a3a5c;
-      border-left: 3px solid #f59e0b;
-      padding-left: 7px;
-    }
+    .session-item:hover { background: #2d2d2d; }
+    .session-item.active { background: #1a3a5c; border-left: 3px solid #3b82f6; padding-left: 7px; }
     .session-title {
       font-size: 13px;
       color: #d0d0d0;
@@ -101,164 +85,92 @@
       text-overflow: ellipsis;
       max-width: 185px;
     }
-    .session-item.active .session-title {
-      color: #ffffff;
-    }
-    .session-time {
-      font-size: 11px;
-      color: #666;
-    }
+    .session-item.active .session-title { color: #ffffff; }
+    .session-time { font-size: 11px; color: #666; }
     .session-actions {
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: none;
-      gap: 2px;
-      align-items: center;
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      display: none; gap: 2px; align-items: center;
     }
-    .session-item:hover .session-actions {
-      display: flex;
-    }
+    .session-item:hover .session-actions { display: flex; }
     .session-rename-btn, .session-delete-btn {
-      background: none;
-      border: none;
-      color: #888;
-      cursor: pointer;
-      font-size: 13px;
-      padding: 2px 4px;
-      border-radius: 4px;
-      line-height: 1;
+      background: none; border: none; color: #888; cursor: pointer;
+      font-size: 13px; padding: 2px 4px; border-radius: 4px; line-height: 1;
     }
-    .session-rename-btn:hover {
-      color: #f59e0b;
-      background: rgba(255,255,255,0.1);
-    }
-    .session-delete-btn:hover {
-      color: #ef4444;
-      background: rgba(255,255,255,0.1);
-    }
+    .session-rename-btn:hover { color: #3b82f6; background: rgba(255,255,255,0.1); }
+    .session-delete-btn:hover { color: #ef4444; background: rgba(255,255,255,0.1); }
     .session-rename-input {
-      font-size: 13px;
-      background: #333;
-      color: #fff;
-      border: 1px solid #f59e0b;
-      border-radius: 4px;
-      padding: 2px 6px;
-      width: 185px;
-      outline: none;
+      font-size: 13px; background: #333; color: #fff;
+      border: 1px solid #3b82f6; border-radius: 4px;
+      padding: 2px 6px; width: 185px; outline: none;
     }
-
-    .sidebar-footer {
-      padding: 10px 12px;
-      border-top: 1px solid #333;
-      color: #888;
-      font-size: 12px;
-    }
+    .sidebar-footer { padding: 10px 12px; border-top: 1px solid #333; color: #888; font-size: 12px; }
 
     /* ── Session counter ── */
-    #session-counter {
-      display: none;
-      font-size: 11px;
-      color: #666;
-      margin-top: 6px;
-      text-align: center;
-    }
-    #session-counter.at-limit {
-      color: #ef4444;
-      font-weight: 600;
-    }
-    #session-counter-bar {
-      height: 3px;
-      background: #333;
-      border-radius: 2px;
-      margin-top: 4px;
-      overflow: hidden;
-    }
-    #session-counter-fill {
-      height: 100%;
-      background: #f59e0b;
-      border-radius: 2px;
-      transition: width 0.3s, background 0.3s;
-    }
+    #session-counter { display: none; font-size: 11px; color: #666; margin-top: 6px; text-align: center; }
+    #session-counter.at-limit { color: #ef4444; font-weight: 600; }
+    #session-counter-bar { height: 3px; background: #333; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+    #session-counter-fill { height: 100%; background: #3b82f6; border-radius: 2px; transition: width 0.3s, background 0.3s; }
 
-    /* ── FAQ section inside sidebar (shown only when logged in) ── */
+    /* ── Sidebar section ── */
     .sidebar-section-title {
-      font-size: 11px;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 10px 10px 4px;
+      font-size: 11px; color: #666; text-transform: uppercase;
+      letter-spacing: 0.05em; padding: 10px 10px 4px;
     }
 
     /* ── Limit banner ── */
     #limit-banner {
-      background: #fee2e2;
-      border-bottom: 1px solid #fca5a5;
-      color: #b91c1c;
-      padding: 10px 16px;
-      font-size: 13px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+      background: #fee2e2; border-bottom: 1px solid #fca5a5; color: #b91c1c;
+      padding: 10px 16px; font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
 
     /* ── Upload area ── */
     .upload-area {
-      border: 2px dashed #555;
-      border-radius: 8px;
-      padding: 10px;
-      text-align: center;
-      font-size: 12px;
-      color: #888;
-      cursor: pointer;
-      transition: border-color 0.15s;
+      border: 2px dashed #555; border-radius: 8px; padding: 10px;
+      text-align: center; font-size: 12px; color: #888; cursor: pointer; transition: border-color 0.15s;
     }
-    .upload-area:hover { border-color: #f59e0b; color: #ccc; }
+    .upload-area:hover { border-color: #3b82f6; color: #ccc; }
 
     /* ── Feedback buttons ── */
-    .feedback-bar {
-      display: flex;
-      gap: 6px;
-      margin-top: 6px;
-      align-items: center;
-    }
+    .feedback-bar { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
     .feedback-btn {
-      background: none;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-size: 14px;
-      cursor: pointer;
-      color: #6b7280;
-      transition: background 0.15s, border-color 0.15s;
-      line-height: 1.5;
+      background: none; border: 1px solid #d1d5db; border-radius: 6px;
+      padding: 2px 8px; font-size: 14px; cursor: pointer; color: #6b7280;
+      transition: background 0.15s, border-color 0.15s; line-height: 1.5;
     }
     .feedback-btn:hover { background: #f3f4f6; border-color: #9ca3af; }
     .feedback-btn.active-up   { background: #dcfce7; border-color: #16a34a; color: #15803d; }
     .feedback-btn.active-down { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
-    .feedback-label {
-      font-size: 11px;
-      color: #9ca3af;
-      margin-left: 2px;
+    .feedback-label { font-size: 11px; color: #9ca3af; margin-left: 2px; }
+
+    /* ── Video citations ── */
+    .sources-panel {
+      margin-top: 8px; padding: 8px 10px;
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
     }
+    .sources-title { font-size: 11px; font-weight: 600; color: #1d4ed8; margin-bottom: 4px; }
+    .source-link {
+      display: block; font-size: 12px; color: #2563eb;
+      text-decoration: none; margin: 2px 0; truncate: ellipsis;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .source-link:hover { text-decoration: underline; }
+    .source-topic { font-size: 10px; color: #64748b; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col" style="height:100vh;overflow:hidden;">
 
   <!-- Header -->
-  <header class="bg-amber-700 text-white px-6 py-3 flex items-center gap-3 shadow-md flex-shrink-0">
-    <div class="text-3xl">☯</div>
+  <header class="bg-blue-700 text-white px-6 py-3 flex items-center gap-3 shadow-md flex-shrink-0">
+    <div class="text-3xl">💼</div>
     <div>
-      <h1 class="text-xl font-bold tracking-wide">道輝 — 一貫道知識庫</h1>
-      <p class="text-xs opacity-80">一貫道典籍智慧問答系統</p>
+      <h1 class="text-xl font-bold tracking-wide">職涯 AI — Career Analyst KB</h1>
+      <p class="text-xs opacity-80">基於 @hrjasmin 職涯顧問影片的知識庫問答系統</p>
     </div>
     <div class="ml-auto flex gap-2 items-center">
       <span id="login-status" class="text-xs opacity-80">未登入</span>
       <button id="login-btn" onclick="showLogin()"
-        class="px-3 py-1 bg-amber-800 hover:bg-amber-900 rounded text-sm transition">登入</button>
+        class="px-3 py-1 bg-blue-800 hover:bg-blue-900 rounded text-sm transition">登入</button>
     </div>
   </header>
 
@@ -267,8 +179,6 @@
 
     <!-- Sidebar -->
     <aside class="sidebar hidden md:flex flex-col">
-
-      <!-- New Chat Button -->
       <div class="sidebar-header">
         <button id="newChatBtn" onclick="createNewSession()">
           <span style="font-size:18px;line-height:1;">+</span>
@@ -282,19 +192,18 @@
 
       <!-- Session List -->
       <div id="sessionList" class="session-list">
-        <!-- Sessions rendered dynamically -->
         <div class="sidebar-section-title" id="sessionSectionLabel" style="display:none;">最近對話</div>
       </div>
 
-      <!-- FAQ Quick Links -->
+      <!-- Quick questions -->
       <div id="faq-section" style="display:none;">
-        <div class="sidebar-section-title">常見問題</div>
+        <div class="sidebar-section-title">快速提問</div>
         <div style="padding:0 6px 6px;">
-          <button onclick="askQuestion('什麼是三寶？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">什麼是三寶</button>
-          <button onclick="askQuestion('十條大願的內容是什麼？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">十條大願的內容</button>
-          <button onclick="askQuestion('求道的意義與過程為何？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">求道的意義與過程</button>
-          <button onclick="askQuestion('一貫道的五倫八德是什麼？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">五倫八德</button>
-          <button onclick="askQuestion('佛堂的規矩與禮儀有哪些？')" class="w-full text-left text-xs text-gray-400 hover:text-amber-400 px-2 py-1 rounded transition block truncate">佛堂規矩與禮儀</button>
+          <button onclick="askQuestion('如何撰寫一份吸引人的履歷？')" class="w-full text-left text-xs text-gray-400 hover:text-blue-400 px-2 py-1 rounded transition block truncate">如何撰寫一份吸引人的履歷？</button>
+          <button onclick="askQuestion('面試前應該如何準備？')" class="w-full text-left text-xs text-gray-400 hover:text-blue-400 px-2 py-1 rounded transition block truncate">面試前應該如何準備？</button>
+          <button onclick="askQuestion('如何談薪水才能爭取到更好的待遇？')" class="w-full text-left text-xs text-gray-400 hover:text-blue-400 px-2 py-1 rounded transition block truncate">如何談薪水？</button>
+          <button onclick="askQuestion('轉職時需要考慮哪些因素？')" class="w-full text-left text-xs text-gray-400 hover:text-blue-400 px-2 py-1 rounded transition block truncate">轉職需要考慮哪些？</button>
+          <button onclick="askQuestion('如何在職場上快速升遷？')" class="w-full text-left text-xs text-gray-400 hover:text-blue-400 px-2 py-1 rounded transition block truncate">如何在職場上升遷？</button>
         </div>
       </div>
 
@@ -308,7 +217,6 @@
         <div id="upload-status" class="text-xs mt-2 text-gray-400 hidden"></div>
       </div>
 
-      <!-- Sidebar Footer: User Info -->
       <div class="sidebar-footer">
         <span id="sidebar-user">請先登入</span>
       </div>
@@ -316,44 +224,52 @@
 
     <!-- Chat Area -->
     <main class="flex-1 flex flex-col overflow-hidden">
-
-      <!-- Message limit banner（超限時顯示，紅色） -->
       <div id="limit-banner" style="display:none;">
         <span>已達訊息上限（每個對話最多 50 輪問答），請開新對話繼續提問。</span>
         <button onclick="createNewSession()" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition flex-shrink-0">新對話</button>
       </div>
 
       <div id="chat-box" class="flex-1 overflow-y-auto p-6 flex flex-col gap-2">
-        <!-- Welcome message -->
         <div class="msg-bubble msg-bot shadow-sm">
-          <p class="text-gray-800">南無阿彌陀佛，歡迎來到道輝知識庫。☯</p>
-          <p class="text-gray-600 text-sm mt-1">您可以詢問有關一貫道教義、典籍內容或修行方法的問題。</p>
+          <p class="text-gray-800 font-medium">歡迎使用職涯 AI 🎯</p>
+          <p class="text-gray-600 text-sm mt-1">我根據職涯顧問 @hrjasmin 的影片內容，為您解答履歷、面試、薪資談判、職涯規劃等問題。</p>
         </div>
-      </div>
-
-      <!-- Sources bar -->
-      <div id="sources-bar" class="hidden px-6 py-2 bg-yellow-50 border-t border-yellow-200 text-xs text-yellow-800">
-        <strong>參考來源：</strong><span id="sources-content"></span>
       </div>
 
       <!-- Input Area -->
       <div class="border-t border-gray-200 bg-white px-6 py-4 flex-shrink-0">
-        <div class="flex gap-3 max-w-4xl mx-auto">
+        <div class="flex gap-2 max-w-4xl mx-auto mb-2">
+          <!-- Topic dropdown -->
+          <select id="topic-select"
+            class="border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-600 flex-shrink-0"
+            style="min-width:130px;">
+            <option value="">全部主題</option>
+            <option value="resume">📄 履歷</option>
+            <option value="interview">🎤 面試</option>
+            <option value="salary">💰 薪資談判</option>
+            <option value="career_planning">🗺️ 職涯規劃</option>
+            <option value="job_search">🔍 求職</option>
+            <option value="promotion">📈 升遷</option>
+            <option value="workplace">🏢 職場</option>
+            <option value="skill_development">🛠️ 技能發展</option>
+            <option value="industry_insight">🏭 產業洞察</option>
+            <option value="general_career">💼 一般職涯</option>
+          </select>
           <textarea
             id="question-input"
             rows="2"
-            placeholder="請輸入您的問題…"
-            class="flex-1 resize-none border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+            placeholder="請輸入您的職涯問題…"
+            class="flex-1 resize-none border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
             onkeydown="handleInputKeydown(event)"
           ></textarea>
           <button
             id="send-btn"
             onclick="sendMessage()"
-            class="px-5 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-sm font-medium transition disabled:opacity-50"
+            class="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-sm font-medium transition disabled:opacity-50 flex-shrink-0"
           >發送</button>
         </div>
-        <div class="flex justify-between items-center mt-2 max-w-4xl mx-auto">
-          <p class="text-xs text-gray-400">本系統僅供 一貫道相關人員使用</p>
+        <div class="flex justify-between items-center max-w-4xl mx-auto">
+          <p class="text-xs text-gray-400">Ctrl+Enter 快速發送 · 基於 @hrjasmin 職涯顧問影片</p>
           <span id="round-counter" class="text-xs text-gray-400"></span>
         </div>
       </div>
@@ -364,12 +280,12 @@
   <div id="login-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
     <div class="bg-white rounded-2xl p-8 w-80 shadow-2xl">
       <h2 class="text-lg font-bold text-gray-800 mb-4">登入系統</h2>
-      <input id="username" type="text" placeholder="用戶名" class="w-full border rounded-lg px-3 py-2 mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
-      <input id="password" type="password" placeholder="密碼" class="w-full border rounded-lg px-3 py-2 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+      <input id="username" type="text" placeholder="用戶名" class="w-full border rounded-lg px-3 py-2 mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <input id="password" type="password" placeholder="密碼" class="w-full border rounded-lg px-3 py-2 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
         onkeydown="if(event.key==='Enter') login()" />
       <div id="login-error" class="text-red-500 text-xs mb-2 hidden"></div>
       <div class="flex gap-2">
-        <button onclick="login()" class="flex-1 bg-amber-700 hover:bg-amber-800 text-white py-2 rounded-lg text-sm transition">登入</button>
+        <button onclick="login()" class="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg text-sm transition">登入</button>
         <button onclick="hideLogin()" class="flex-1 border py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition">取消</button>
       </div>
     </div>
@@ -377,17 +293,16 @@
 
 <script>
   marked.use({ breaks: true });
-  
+
   const API_BASE = '';
   const MAX_ROUNDS = 50;
   let authToken = localStorage.getItem('token') || '';
   let currentUsername = localStorage.getItem('username') || '';
   let currentSessionId = null;
-  let isFirstMessage = true;  // track if this is the first message in current session
-  let currentMessageCount = 0; // 目前 session 的訊息數量（user + assistant 各算 1）
-  let currentMaxSessions = 20; // 使用者的 session 數量上限（從 /api/auth/me 取得）
+  let isFirstMessage = true;
+  let currentMessageCount = 0;
+  let currentMaxSessions = 20;
 
-  // ── Keyboard shortcut: Ctrl+Enter or Cmd+Enter to send ──────────
   function handleInputKeydown(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -395,7 +310,7 @@
     }
   }
 
-  // ── Auth ─────────────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────
   function showLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
   function hideLogin() { document.getElementById('login-modal').classList.add('hidden'); }
 
@@ -411,7 +326,6 @@
       currentUsername = username;
       localStorage.setItem('token', authToken);
       localStorage.setItem('username', username);
-      // Fetch max_sessions from profile
       const meRes = await fetch(`${API_BASE}/api/auth/me`, { headers: { 'Authorization': `Bearer ${authToken}` } });
       if (meRes.ok) {
         const me = await meRes.json();
@@ -419,7 +333,6 @@
       }
       updateLoginUI(username);
       hideLogin();
-      // Load sessions and auto-load most recent or create new
       await loadSessions();
     } catch (e) {
       document.getElementById('login-error').textContent = '用戶名或密碼錯誤';
@@ -455,27 +368,22 @@
     document.getElementById('upload-section').style.display = 'block';
   }
 
-  // ── Session counter ──────────────────────────────────────────────
-
+  // ── Session counter ───────────────────────────────────────────────
   function updateSessionCounter() {
     const count = document.querySelectorAll('.session-item').length;
     const max = currentMaxSessions;
     const el = document.getElementById('session-counter');
     const text = document.getElementById('session-counter-text');
     const fill = document.getElementById('session-counter-fill');
-
     el.style.display = 'block';
     const atLimit = count >= max;
-    text.textContent = atLimit
-      ? `⚠️ 已達上限 ${count} / ${max} 個對話`
-      : `對話：${count} / ${max}`;
+    text.textContent = atLimit ? `⚠️ 已達上限 ${count} / ${max}` : `對話：${count} / ${max}`;
     el.className = atLimit ? 'at-limit' : '';
     fill.style.width = `${Math.min(100, (count / max) * 100)}%`;
-    fill.style.background = atLimit ? '#ef4444' : count / max >= 0.8 ? '#f59e0b' : '#22c55e';
+    fill.style.background = atLimit ? '#ef4444' : count / max >= 0.8 ? '#f59e0b' : '#3b82f6';
   }
 
-  // ── Sessions ─────────────────────────────────────────────────────
-
+  // ── Sessions ──────────────────────────────────────────────────────
   async function loadSessions() {
     if (!authToken) return;
     try {
@@ -485,7 +393,6 @@
       if (!res.ok) return;
       const sessions = await res.json();
       renderSessionList(sessions);
-
       if (sessions.length > 0) {
         await loadSession(sessions[0].session_id);
       } else {
@@ -501,10 +408,7 @@
     try {
       const res = await fetch(`${API_BASE}/api/sessions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ title: null }),
       });
       if (res.status === 429) {
@@ -517,8 +421,6 @@
       currentSessionId = session.session_id;
       currentMessageCount = 0;
       isFirstMessage = true;
-
-      // Prepend to session list
       prependSessionToSidebar(session);
       setActiveSession(session.session_id);
       clearChat();
@@ -539,7 +441,6 @@
       currentSessionId = session.session_id;
       currentMessageCount = session.message_count;
       isFirstMessage = session.message_count === 0;
-
       setActiveSession(sessionId);
       renderSessionMessages(session.messages);
       updateRoundCounter();
@@ -550,19 +451,13 @@
 
   function renderSessionList(sessions) {
     const list = document.getElementById('sessionList');
-    // Keep label
     list.innerHTML = '';
     const label = document.createElement('div');
     label.className = 'sidebar-section-title';
     label.id = 'sessionSectionLabel';
     label.textContent = '最近對話';
-    if (sessions.length > 0) {
-      label.style.display = 'block';
-      list.appendChild(label);
-    }
-    sessions.forEach(s => {
-      list.appendChild(buildSessionItem(s));
-    });
+    if (sessions.length > 0) { label.style.display = 'block'; list.appendChild(label); }
+    sessions.forEach(s => list.appendChild(buildSessionItem(s)));
     updateSessionCounter();
   }
 
@@ -587,23 +482,16 @@
     renameBtn.className = 'session-rename-btn';
     renameBtn.title = '重新命名';
     renameBtn.textContent = '✏️';
-    renameBtn.onclick = (e) => {
-      e.stopPropagation();
-      startRenameSession(session.session_id, title);
-    };
+    renameBtn.onclick = (e) => { e.stopPropagation(); startRenameSession(session.session_id, title); };
 
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'session-delete-btn';
     deleteBtn.title = '刪除對話';
     deleteBtn.textContent = '🗑️';
-    deleteBtn.onclick = (e) => {
-      e.stopPropagation();
-      deleteSession(session.session_id);
-    };
+    deleteBtn.onclick = (e) => { e.stopPropagation(); deleteSession(session.session_id); };
 
     actions.appendChild(renameBtn);
     actions.appendChild(deleteBtn);
-
     div.appendChild(title);
     div.appendChild(time);
     div.appendChild(actions);
@@ -616,7 +504,6 @@
     input.className = 'session-rename-input';
     input.value = currentTitle === '新對話' ? '' : currentTitle;
     input.placeholder = '輸入名稱…';
-
     titleEl.replaceWith(input);
     input.focus();
     input.select();
@@ -624,14 +511,12 @@
     const finish = async () => {
       const newTitle = input.value.trim();
       const finalTitle = newTitle || currentTitle;
-      // Restore title element
       input.replaceWith(titleEl);
       if (newTitle && newTitle !== currentTitle) {
         titleEl.textContent = finalTitle;
         await doRenameSession(sessionId, finalTitle);
       }
     };
-
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); finish(); }
       if (e.key === 'Escape') { input.replaceWith(titleEl); }
@@ -643,15 +528,10 @@
     try {
       await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ title }),
       });
-    } catch (e) {
-      console.error('Failed to rename session:', e);
-    }
+    } catch (e) { console.error('Failed to rename session:', e); }
   }
 
   async function deleteSession(sessionId) {
@@ -662,27 +542,20 @@
         headers: { 'Authorization': `Bearer ${authToken}` },
       });
       if (!res.ok) throw new Error('Failed to delete session');
-      // Remove from sidebar
       const item = document.querySelector(`.session-item[data-session-id="${sessionId}"]`);
       if (item) item.remove();
       updateSessionCounter();
-      // If deleted current session, clear chat and create new
       if (sessionId === currentSessionId) {
         currentSessionId = null;
         clearChat();
         const remaining = document.querySelectorAll('.session-item');
-        if (remaining.length > 0) {
-          await loadSession(remaining[0].dataset.sessionId);
-        }
+        if (remaining.length > 0) await loadSession(remaining[0].dataset.sessionId);
       }
-    } catch (e) {
-      console.error('Failed to delete session:', e);
-    }
+    } catch (e) { console.error('Failed to delete session:', e); }
   }
 
   function prependSessionToSidebar(session) {
     const list = document.getElementById('sessionList');
-    // Ensure label exists
     let label = document.getElementById('sessionSectionLabel');
     if (!label) {
       label = document.createElement('div');
@@ -692,10 +565,7 @@
       list.prepend(label);
     }
     label.style.display = 'block';
-
-    const item = buildSessionItem(session);
-    // Insert after label
-    label.after(item);
+    label.after(buildSessionItem(session));
     updateSessionCounter();
   }
 
@@ -717,10 +587,7 @@
     const box = document.getElementById('chat-box');
     box.innerHTML = '';
     if (messages.length === 0) {
-      const welcome = document.createElement('div');
-      welcome.className = 'msg-bubble msg-bot shadow-sm';
-      welcome.innerHTML = '<p class="text-gray-800">南無阿彌陀佛，歡迎來到道輝知識庫。☯</p><p class="text-gray-600 text-sm mt-1">您可以詢問有關一貫道教義、典籍內容或修行方法的問題。</p>';
-      box.appendChild(welcome);
+      box.appendChild(buildWelcome());
       return;
     }
     messages.forEach(m => {
@@ -730,9 +597,15 @@
     });
   }
 
+  function buildWelcome() {
+    const div = document.createElement('div');
+    div.className = 'msg-bubble msg-bot shadow-sm';
+    div.innerHTML = '<p class="text-gray-800 font-medium">歡迎使用職涯 AI 🎯</p><p class="text-gray-600 text-sm mt-1">我根據職涯顧問 @hrjasmin 的影片內容，為您解答履歷、面試、薪資談判、職涯規劃等問題。</p>';
+    return div;
+  }
+
   function formatRelativeTime(dateStr) {
     if (!dateStr) return '';
-    // 後端回傳的 datetime 不帶時區，需補上 Z 讓 JS 正確解析為 UTC
     const normalized = /[Z+]/.test(dateStr) ? dateStr : dateStr + 'Z';
     const date = new Date(normalized);
     const now = new Date();
@@ -740,21 +613,17 @@
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
     if (diffMins < 1) return '剛剛';
     if (diffMins < 60) return `${diffMins}分鐘前`;
     if (diffHours < 24) return `${diffHours}小時前`;
     return `${diffDays}天前`;
   }
 
-  // ── Chat ─────────────────────────────────────────────────────────
+  // ── Chat ──────────────────────────────────────────────────────────
   function clearChat() {
     const box = document.getElementById('chat-box');
     box.innerHTML = '';
-    const welcome = document.createElement('div');
-    welcome.className = 'msg-bubble msg-bot shadow-sm';
-    welcome.innerHTML = '<p class="text-gray-800">南無阿彌陀佛，歡迎來到道輝知識庫。☯</p><p class="text-gray-600 text-sm mt-1">您可以詢問有關一貫道教義、典籍內容或修行方法的問題。</p>';
-    box.appendChild(welcome);
+    box.appendChild(buildWelcome());
   }
 
   function askQuestion(q) {
@@ -770,7 +639,6 @@
       div.textContent = content;
     } else {
       div.innerHTML = content ? marked.parse(content) : '';
-      // Feedback bar for bot messages
       const bar = document.createElement('div');
       bar.className = 'feedback-bar';
       if (messageId) {
@@ -806,7 +674,36 @@
     if (!bar) return;
     bar.dataset.messageId = messageId;
     bar.innerHTML = buildFeedbackButtons(messageId);
-    bar.style.removeProperty('display');  // 移除 display:none，讓 CSS flex 生效
+    bar.style.removeProperty('display');
+  }
+
+  function attachSources(botDiv, sources) {
+    if (!sources || sources.length === 0) return;
+    const panel = document.createElement('div');
+    panel.className = 'sources-panel';
+    const title = document.createElement('div');
+    title.className = 'sources-title';
+    title.textContent = '📹 影片來源';
+    panel.appendChild(title);
+
+    const seen = new Set();
+    sources.forEach(s => {
+      if (!s.url || seen.has(s.url)) return;
+      seen.add(s.url);
+      const a = document.createElement('a');
+      a.className = 'source-link';
+      a.href = s.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = s.title || s.url;
+      const topicEl = document.createElement('span');
+      topicEl.className = 'source-topic';
+      topicEl.textContent = ` · ${s.topic || ''}`;
+      a.appendChild(topicEl);
+      panel.appendChild(a);
+    });
+
+    botDiv.appendChild(panel);
   }
 
   async function submitFeedback(messageId, rating, btn) {
@@ -814,10 +711,7 @@
     try {
       const res = await fetch(`${API_BASE}/api/feedback`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
         body: JSON.stringify({ message_id: messageId, rating: rating === 1 ? 'up' : 'down' }),
       });
       if (!res.ok) throw new Error('feedback failed');
@@ -828,14 +722,7 @@
         const label = document.getElementById(`feedback-label-${messageId}`);
         if (label) label.textContent = rating === 1 ? '感謝回饋！' : '感謝告知';
       }
-    } catch (e) {
-      console.error('Failed to submit feedback:', e);
-    }
-  }
-
-  // Keep backward compatibility
-  function addMessage(content, role) {
-    return addMessageToBox(content, role);
+    } catch (e) { console.error('Failed to submit feedback:', e); }
   }
 
   function showTyping() {
@@ -843,7 +730,7 @@
     const div = document.createElement('div');
     div.id = 'typing-indicator';
     div.className = 'msg-bubble msg-bot shadow-sm flex gap-1 items-center';
-    div.innerHTML = '<span class="typing-dot w-2 h-2 bg-amber-500 rounded-full inline-block"></span>'.repeat(3);
+    div.innerHTML = '<span class="typing-dot w-2 h-2 bg-blue-500 rounded-full inline-block"></span>'.repeat(3);
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
   }
@@ -860,9 +747,7 @@
       if (counterEl) counterEl.textContent = '';
     } else {
       hideLimitBanner();
-      if (counterEl) {
-        counterEl.textContent = rounds > 0 ? `第 ${rounds} / ${MAX_ROUNDS} 輪問答` : '';
-      }
+      if (counterEl) counterEl.textContent = rounds > 0 ? `第 ${rounds} / ${MAX_ROUNDS} 輪問答` : '';
     }
   }
 
@@ -878,50 +763,46 @@
 
   async function sendMessage() {
     if (!authToken) { showLogin(); return; }
-    if (!currentSessionId) {
-      await createNewSession();
-    }
+    if (!currentSessionId) await createNewSession();
 
     const input = document.getElementById('question-input');
     const question = input.value.trim();
     if (!question) return;
 
+    const topic = document.getElementById('topic-select').value || null;
+
     input.value = '';
     document.getElementById('send-btn').disabled = true;
-    document.getElementById('sources-bar').classList.add('hidden');
 
-    addMessage(question, 'user');
+    addMessageToBox(question, 'user');
     showTyping();
 
     try {
       const res = await fetch(`${API_BASE}/api/chat/query`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({ question, session_id: currentSessionId }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({ question, session_id: currentSessionId, topic }),
       });
 
       if (!res.ok) {
         const err = await res.json();
         removeTyping();
-        // Handle message limit (HTTP 429)
         if (res.status === 429) {
-          addMessage(`⚠️ ${err.detail || '已達訊息上限，請開新對話'}`, 'bot');
+          addMessageToBox(`⚠️ ${err.detail || '已達訊息上限，請開新對話'}`, 'bot');
           showLimitBanner();
           return;
         }
-        addMessage(`⚠️ ${err.detail || '發生錯誤'}`, 'bot');
+        addMessageToBox(`⚠️ ${err.detail || '發生錯誤'}`, 'bot');
         return;
       }
 
       removeTyping();
-      const botDiv = addMessage('', 'bot');
+      const botDiv = addMessageToBox('', 'bot');
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
       let botText = '';
+      let pendingSources = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -930,44 +811,51 @@
         const lines = buffer.split('\n');
         buffer = lines.pop();
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const token = line.slice(6);
-            if (token === '[DONE]') {
-              // Update session title on first message
-              if (isFirstMessage) {
-                isFirstMessage = false;
-                const shortTitle = question.slice(0, 50);
-                updateSidebarSessionTitle(currentSessionId, shortTitle);
-              }
-              // 每完成一輪問答 += 2（user + assistant）
-              currentMessageCount += 2;
-              updateRoundCounter();
-              break;
+          if (!line.startsWith('data: ')) continue;
+          const token = line.slice(6);
+
+          if (token === '[DONE]') {
+            if (isFirstMessage) {
+              isFirstMessage = false;
+              updateSidebarSessionTitle(currentSessionId, question.slice(0, 50));
             }
-            if (token.startsWith('[META:')) {
-              try {
-                const meta = JSON.parse(token.slice(6, -1));
-                if (meta.message_id) attachMessageId(botDiv, meta.message_id);
-              } catch (e) { /* ignore parse errors */ }
-              continue;
-            }
-            if (token.startsWith('[ERROR]')) { 
-              botDiv.textContent = token;
-              break; 
-            }
-            botText += token;
-            // Re-render without touching the feedback bar
-            const bar = botDiv.querySelector('.feedback-bar');
-            if (bar) botDiv.removeChild(bar);
-            botDiv.innerHTML = marked.parse(botText);
-            if (bar) botDiv.appendChild(bar);
-            document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+            currentMessageCount += 2;
+            updateRoundCounter();
+            if (pendingSources) attachSources(botDiv, pendingSources);
+            break;
           }
+
+          if (token.startsWith('[META:')) {
+            try {
+              const meta = JSON.parse(token.slice(6, -1));
+              if (meta.message_id) attachMessageId(botDiv, meta.message_id);
+            } catch (e) { /* ignore */ }
+            continue;
+          }
+
+          if (token.startsWith('[SOURCES:')) {
+            try {
+              pendingSources = JSON.parse(token.slice(9, -1));
+            } catch (e) { /* ignore */ }
+            continue;
+          }
+
+          if (token.startsWith('[ERROR]')) {
+            botDiv.textContent = token;
+            break;
+          }
+
+          botText += token;
+          const bar = botDiv.querySelector('.feedback-bar');
+          if (bar) botDiv.removeChild(bar);
+          botDiv.innerHTML = marked.parse(botText);
+          if (bar) botDiv.appendChild(bar);
+          document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
         }
       }
     } catch (e) {
       removeTyping();
-      addMessage('⚠️ 連線失敗，請確認系統運行中', 'bot');
+      addMessageToBox('⚠️ 連線失敗，請確認系統運行中', 'bot');
     } finally {
       document.getElementById('send-btn').disabled = false;
     }
@@ -981,10 +869,8 @@
     const status = document.getElementById('upload-status');
     status.textContent = `上傳中：${file.name}…`;
     status.classList.remove('hidden');
-
     const form = new FormData();
     form.append('file', file);
-
     try {
       const res = await fetch(`${API_BASE}/api/documents/upload`, {
         method: 'POST',
@@ -1008,7 +894,6 @@
   // ── Init ──────────────────────────────────────────────────────────
   if (authToken && currentUsername) {
     updateLoginUI(currentUsername);
-    // Fetch max_sessions then load sessions
     fetch(`${API_BASE}/api/auth/me`, { headers: { 'Authorization': `Bearer ${authToken}` } })
       .then(r => r.ok ? r.json() : null)
       .then(me => { if (me) currentMaxSessions = me.max_sessions ?? 20; })

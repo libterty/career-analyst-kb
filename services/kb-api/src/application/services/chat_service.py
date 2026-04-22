@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import json
 import time
 from typing import AsyncIterator, Callable, Any
 
@@ -180,6 +181,15 @@ class ChatService:
 
         # 7. 儲存對話記憶
         memory.save_context({"input": question}, {"output": full_response})
+
+        # 7.4 傳送來源資訊（YouTube 影片引用）
+        sources_data = [
+            {"title": r.video_title, "url": r.url, "topic": r.section, "score": round(r.score, 3)}
+            for r in results
+            if r.url
+        ]
+        if sources_data:
+            yield f'[SOURCES:{json.dumps(sources_data, ensure_ascii=False)}]'
 
         # 7.5 將結果存入語意快取（不阻塞串流）
         if self._semantic_cache is not None:
