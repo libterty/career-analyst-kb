@@ -71,7 +71,7 @@ def call_kb_api(
         f"{base_url}/api/chat/query/sync",
         json={"question": question, "session_id": session_id, "topic": topic},
         headers={"Authorization": f"Bearer {token}"},
-        timeout=60,
+        timeout=180,
     )
     resp.raise_for_status()
     return resp.json()
@@ -83,7 +83,7 @@ def judge_relevance(question: str, answer: str) -> int:
         resp = httpx.post(
             f"{OLLAMA_BASE_URL}/api/generate",
             json={"model": JUDGE_MODEL, "prompt": prompt, "stream": False},
-            timeout=30,
+            timeout=120,
         )
         resp.raise_for_status()
         text = resp.json().get("response", "").strip()

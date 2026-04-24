@@ -6,11 +6,13 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "eval": "tsx src/eval.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.0",
     "@voltagent/core": "^2.7.0",
+    "@voltagent/server-hono": "^2.0.12",
     "dotenv": "^16.0.0",
     "zod": "^3.22.0"
   },

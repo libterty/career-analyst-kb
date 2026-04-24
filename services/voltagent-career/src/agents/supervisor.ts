@@ -1,13 +1,11 @@
 import { Agent } from "@voltagent/core";
-import { createOpenAI } from "@ai-sdk/openai";
-import { config } from "../config";
+import { ollamaModel } from "../config";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 import { resumeAgent } from "./resume";
 import { interviewAgent } from "./interview";
 import { careerPlanAgent } from "./career-plan";
 import { salaryAgent } from "./salary";
 
-const ollama = createOpenAI({ baseURL: config.ollamaBaseUrl, apiKey: "ollama" });
 
 export const supervisorAgent = new Agent({
   name: "CareerLeadAgent",
@@ -23,7 +21,7 @@ export const supervisorAgent = new Agent({
 一般職場問題可直接使用 queryCareerKB 工具回答，無需路由到子 agent。
 
 所有回應以繁體中文撰寫，語調專業而親切。引用影片內容時附上影片標題。`,
-  model: ollama(config.voltagentModel),
+  model: ollamaModel,
   tools: [queryCareerKBTool],
   subAgents: [resumeAgent, interviewAgent, careerPlanAgent, salaryAgent],
 });

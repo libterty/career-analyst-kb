@@ -1,9 +1,7 @@
 import { Agent } from "@voltagent/core";
-import { createOpenAI } from "@ai-sdk/openai";
-import { config } from "../config";
+import { ollamaModel } from "../config";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 
-const ollama = createOpenAI({ baseURL: config.ollamaBaseUrl, apiKey: "ollama" });
 
 export const salaryAgent = new Agent({
   name: "SalaryAgent",
@@ -16,6 +14,6 @@ export const salaryAgent = new Agent({
 - 協助使用者建立自信的談判心態
 
 所有回應以繁體中文撰寫，引用影片建議時附上影片標題。`,
-  model: ollama(config.voltagentModel),
+  model: ollamaModel,
   tools: [queryCareerKBTool],
 });

@@ -1,9 +1,7 @@
 import { Agent } from "@voltagent/core";
-import { createOpenAI } from "@ai-sdk/openai";
-import { config } from "../config";
+import { ollamaModel } from "../config";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 
-const ollama = createOpenAI({ baseURL: config.ollamaBaseUrl, apiKey: "ollama" });
 
 export const careerPlanAgent = new Agent({
   name: "CareerPlanAgent",
@@ -16,6 +14,6 @@ export const careerPlanAgent = new Agent({
 - 評估不同職涯選擇的機會與風險
 
 所有回應以台灣用語的繁體中文撰寫，引用影片建議時附上影片標題。`,
-  model: ollama(config.voltagentModel),
+  model: ollamaModel,
   tools: [queryCareerKBTool],
 });

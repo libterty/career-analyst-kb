@@ -1,10 +1,8 @@
 import { Agent } from "@voltagent/core";
-import { createOpenAI } from "@ai-sdk/openai";
-import { config } from "../config";
+import { ollamaModel } from "../config";
 import { generateQuestionsTool } from "../tools/generate-questions";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 
-const ollama = createOpenAI({ baseURL: config.ollamaBaseUrl, apiKey: "ollama" });
 
 export const interviewAgent = new Agent({
   name: "InterviewAgent",
@@ -17,6 +15,6 @@ export const interviewAgent = new Agent({
 - 分析常見面試陷阱與應對策略
 
 所有回應以繁體中文撰寫，引用影片建議時附上影片標題。`,
-  model: ollama(config.voltagentModel),
+  model: ollamaModel,
   tools: [generateQuestionsTool, queryCareerKBTool],
 });

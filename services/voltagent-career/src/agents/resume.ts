@@ -1,10 +1,8 @@
 import { Agent } from "@voltagent/core";
-import { createOpenAI } from "@ai-sdk/openai";
-import { config } from "../config";
+import { ollamaModel } from "../config";
 import { analyzeResumeTool } from "../tools/analyze-resume";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 
-const ollama = createOpenAI({ baseURL: config.ollamaBaseUrl, apiKey: "ollama" });
 
 export const resumeAgent = new Agent({
   name: "ResumeAgent",
@@ -17,6 +15,6 @@ export const resumeAgent = new Agent({
 - 依據職涯顧問的實際建議給出具體範例
 
 所有回應以繁體中文撰寫，引用影片建議時附上影片標題。`,
-  model: ollama(config.voltagentModel),
+  model: ollamaModel,
   tools: [analyzeResumeTool, queryCareerKBTool],
 });
