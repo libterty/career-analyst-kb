@@ -1,0 +1,344 @@
+[
+  {
+    "id": "resume-001",
+    "question": "一頁履歷和多頁履歷哪個比較好？什麼情況下可以超過一頁？",
+    "expected": "resume",
+    "predicted_primary": "resume",
+    "predicted_all": [
+      "resume"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "resume-002",
+    "question": "履歷自傳怎麼寫才能吸引 HR 注意？有哪些常見的寫法錯誤？",
+    "expected": "resume",
+    "predicted_primary": "resume",
+    "predicted_all": [
+      "resume"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "resume-003",
+    "question": "沒有相關工作經驗，應屆畢業生的履歷應該怎麼呈現？",
+    "expected": "resume",
+    "predicted_primary": "resume",
+    "predicted_all": [
+      "resume"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "resume-004",
+    "question": "如何用 ATS 友善的方式撰寫履歷？關鍵字應該怎麼選？",
+    "expected": "resume",
+    "predicted_primary": "resume",
+    "predicted_all": [
+      "resume"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "interview-001",
+    "question": "面試時被問到「你最大的缺點是什麼？」應該怎麼回答？",
+    "expected": "interview",
+    "predicted_primary": "interview",
+    "predicted_all": [
+      "interview"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "interview-002",
+    "question": "STAR 方法是什麼？如何用它來回答行為面試問題？",
+    "expected": "interview",
+    "predicted_primary": "interview",
+    "predicted_all": [
+      "interview"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "interview-003",
+    "question": "面試前應該做哪些準備？如何研究目標公司？",
+    "expected": "interview",
+    "predicted_primary": "interview",
+    "predicted_all": [
+      "interview"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "interview-004",
+    "question": "線上視訊面試和現場面試有哪些不同的注意事項？",
+    "expected": "interview",
+    "predicted_primary": "interview",
+    "predicted_all": [
+      "interview"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "career-planning-001",
+    "question": "工作三年了，感覺卡住了不知道下一步該怎麼走，如何規劃下一階段的職涯？",
+    "expected": "career_planning",
+    "predicted_primary": "career_planning",
+    "predicted_all": [
+      "career_planning"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "career-planning-002",
+    "question": "想從非本科背景轉職進入科技業，需要做哪些準備？",
+    "expected": "career_planning",
+    "predicted_primary": "career_planning",
+    "predicted_all": [
+      "career_planning",
+      "industry_insight"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "career-planning-003",
+    "question": "什麼時候應該考慮轉職？有哪些跡象說明現在是好時機？",
+    "expected": "career_planning",
+    "predicted_primary": "career_planning",
+    "predicted_all": [
+      "career_planning"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "career-planning-004",
+    "question": "在同一家公司做了五年，是否應該離開換個環境？",
+    "expected": "career_planning",
+    "predicted_primary": "career_planning",
+    "predicted_all": [
+      "career_planning"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "salary-001",
+    "question": "面試時被問到期望薪資，應該先開口還是等對方出價？",
+    "expected": "salary",
+    "predicted_primary": "interview",
+    "predicted_all": [
+      "interview",
+      "salary"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "salary-002",
+    "question": "如何知道自己目前的薪資是否低於市場水準？如何蒐集薪資資訊？",
+    "expected": "salary",
+    "predicted_primary": "salary",
+    "predicted_all": [
+      "salary",
+      "industry_insight"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "salary-003",
+    "question": "收到 offer 後如何進行薪資談判？有哪些實用的話術？",
+    "expected": "salary",
+    "predicted_primary": "job_search",
+    "predicted_all": [
+      "job_search",
+      "salary"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "workplace-001",
+    "question": "遇到不合理的主管或主管的管理方式讓你很痛苦，應該怎麼處理？",
+    "expected": "workplace",
+    "predicted_primary": "workplace",
+    "predicted_all": [
+      "workplace",
+      "promotion"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "workplace-002",
+    "question": "在職場中如何建立好人緣，同時又不失去自己的立場？",
+    "expected": "workplace",
+    "predicted_primary": "workplace",
+    "predicted_all": [
+      "workplace"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "workplace-003",
+    "question": "職場上遇到搶功勞的同事，應該如何應對？",
+    "expected": "workplace",
+    "predicted_primary": "workplace",
+    "predicted_all": [
+      "workplace"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "job-search-001",
+    "question": "透過人脈找工作和直接投遞履歷，哪種方式效果比較好？",
+    "expected": "job_search",
+    "predicted_primary": "resume",
+    "predicted_all": [
+      "resume",
+      "job_search"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "job-search-002",
+    "question": "同時談多家公司 offer，如何處理 offer 時間壓力？",
+    "expected": "job_search",
+    "predicted_primary": "job_search",
+    "predicted_all": [
+      "job_search",
+      "salary"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "job-search-003",
+    "question": "在職中求職如何保持低調，避免現任公司知道？",
+    "expected": "job_search",
+    "predicted_primary": "job_search",
+    "predicted_all": [
+      "job_search"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "job-search-004",
+    "question": "投了幾十封履歷都沒有回音，可能是什麼原因？",
+    "expected": "job_search",
+    "predicted_primary": "resume",
+    "predicted_all": [
+      "resume",
+      "job_search"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "promotion-001",
+    "question": "如何讓主管注意到自己的貢獻，增加升遷機會？",
+    "expected": "promotion",
+    "predicted_primary": "workplace",
+    "predicted_all": [
+      "workplace",
+      "promotion"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "promotion-002",
+    "question": "被後進者超越升遷，感到不公平，應該怎麼看待這件事？",
+    "expected": "promotion",
+    "predicted_primary": "promotion",
+    "predicted_all": [
+      "promotion"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "promotion-003",
+    "question": "升遷評估標準通常有哪些？如何系統性地準備晉升？",
+    "expected": "promotion",
+    "predicted_primary": "promotion",
+    "predicted_all": [
+      "promotion"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "industry-001",
+    "question": "台灣的外商公司和本土企業在工作文化上有哪些主要差異？",
+    "expected": "industry_insight",
+    "predicted_primary": "workplace",
+    "predicted_all": [
+      "workplace",
+      "industry_insight"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "industry-002",
+    "question": "現在 AI 的發展，哪些職位比較不容易被取代？",
+    "expected": "industry_insight",
+    "predicted_primary": "industry_insight",
+    "predicted_all": [
+      "industry_insight"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "industry-003",
+    "question": "新創公司和大企業各自的優缺點是什麼？如何選擇？",
+    "expected": "industry_insight",
+    "predicted_primary": "workplace",
+    "predicted_all": [
+      "workplace",
+      "industry_insight"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "skill-001",
+    "question": "在職進修如何找時間學習？如何讓自己持續進步？",
+    "expected": "skill_development",
+    "predicted_primary": "skill_development",
+    "predicted_all": [
+      "skill_development"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  },
+  {
+    "id": "skill-002",
+    "question": "英文能力對職涯發展有多重要？如何在工作中提升英文？",
+    "expected": "skill_development",
+    "predicted_primary": "career_planning",
+    "predicted_all": [
+      "career_planning",
+      "skill_development"
+    ],
+    "confidence": "keyword",
+    "correct": true
+  }
+]

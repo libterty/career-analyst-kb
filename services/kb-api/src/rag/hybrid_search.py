@@ -177,6 +177,10 @@ class HybridSearchEngine(ISearchEngine):
                 source=result.source,
                 section=result.section,
                 score=score,
+                page_number=result.page_number,
+                video_title=result.video_title,
+                upload_date=result.upload_date,
+                url=result.url,
             ))
 
         logger.debug(f"Hybrid search: {len(results)} final results after RRF fusion")

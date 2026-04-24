@@ -1,0 +1,72 @@
+[
+  {
+    "latency_ms": 4356.807500000286,
+    "status": 200,
+    "error": null,
+    "run": 0,
+    "question_id": "industry-001"
+  },
+  {
+    "latency_ms": 12656.710417002614,
+    "status": 200,
+    "error": null,
+    "run": 1,
+    "question_id": "job-search-002"
+  },
+  {
+    "latency_ms": 19962.933999995585,
+    "status": 200,
+    "error": null,
+    "run": 2,
+    "question_id": "career-planning-002"
+  },
+  {
+    "latency_ms": 16090.945208998164,
+    "status": 200,
+    "error": null,
+    "run": 3,
+    "question_id": "resume-003"
+  },
+  {
+    "latency_ms": 19905.25374999561,
+    "status": 200,
+    "error": null,
+    "run": 4,
+    "question_id": "career-planning-001"
+  },
+  {
+    "latency_ms": 19543.676125002094,
+    "status": 200,
+    "error": null,
+    "run": 5,
+    "question_id": "promotion-002"
+  },
+  {
+    "latency_ms": 10539.640625000175,
+    "status": 200,
+    "error": null,
+    "run": 6,
+    "question_id": "job-search-002"
+  },
+  {
+    "latency_ms": 15284.20429200196,
+    "status": 200,
+    "error": null,
+    "run": 7,
+    "question_id": "workplace-001"
+  },
+  {
+    "latency_ms": 20641.01649999793,
+    "status": 200,
+    "error": null,
+    "run": 8,
+    "question_id": "promotion-002"
+  },
+  {
+    "latency_ms": 19711.952707999444,
+    "status": 200,
+    "error": null,
+    "run": 9,
+    "question_id": "skill-001"
+  }
+]

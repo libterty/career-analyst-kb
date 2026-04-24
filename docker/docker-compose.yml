@@ -22,6 +22,7 @@ services:
       - ../data:/app/data
       - ../services/kb-api/src:/app/src
       - ../services/kb-api/migrations:/app/migrations
+      - ../frontend:/app/frontend
     restart: unless-stopped
 
   # ── PostgreSQL ─────────────────────────────────

@@ -1,0 +1,572 @@
+[
+  {
+    "id": "resume-001",
+    "topic": "resume",
+    "question": "一頁履歷和多頁履歷哪個比較好？什麼情況下可以超過一頁？",
+    "expected_keywords": [
+      "一頁",
+      "多頁",
+      "工作年資",
+      "ATS",
+      "精簡"
+    ],
+    "answer": "",
+    "latency_ms": 60006,
+    "relevance_score": -1,
+    "keyword_hit_rate": 0.0,
+    "has_sources": false,
+    "source_count": 0,
+    "error": "timed out"
+  },
+  {
+    "id": "resume-002",
+    "topic": "resume",
+    "question": "履歷自傳怎麼寫才能吸引 HR 注意？有哪些常見的寫法錯誤？",
+    "expected_keywords": [
+      "自傳",
+      "自我介紹",
+      "具體",
+      "成就",
+      "量化"
+    ],
+    "answer": "",
+    "latency_ms": 60008,
+    "relevance_score": -1,
+    "keyword_hit_rate": 0.0,
+    "has_sources": false,
+    "source_count": 0,
+    "error": "timed out"
+  },
+  {
+    "id": "resume-003",
+    "topic": "resume",
+    "question": "沒有相關工作經驗，應屆畢業生的履歷應該怎麼呈現？",
+    "expected_keywords": [
+      "應屆",
+      "實習",
+      "學生",
+      "專題",
+      "社團"
+    ],
+    "answer": "",
+    "latency_ms": 60006,
+    "relevance_score": -1,
+    "keyword_hit_rate": 0.0,
+    "has_sources": false,
+    "source_count": 0,
+    "error": "timed out"
+  },
+  {
+    "id": "resume-004",
+    "topic": "resume",
+    "question": "如何用 ATS 友善的方式撰寫履歷？關鍵字應該怎麼選？",
+    "expected_keywords": [
+      "ATS",
+      "關鍵字",
+      "格式",
+      "掃描",
+      "職缺描述"
+    ],
+    "answer": "",
+    "latency_ms": 60005,
+    "relevance_score": -1,
+    "keyword_hit_rate": 0.0,
+    "has_sources": false,
+    "source_count": 0,
+    "error": "timed out"
+  },
+  {
+    "id": "interview-001",
+    "topic": "interview",
+    "question": "面試時被問到「你最大的缺點是什麼？」應該怎麼回答？",
+    "expected_keywords": [
+      "缺點",
+      "誠實",
+      "改善",
+      "具體",
+      "成長"
+    ],
+    "answer": "",
+    "latency_ms": 60005,
+    "relevance_score": -1,
+    "keyword_hit_rate": 0.0,
+    "has_sources": false,
+    "source_count": 0,
+    "error": "timed out"
+  },
+  {
+    "id": "interview-002",
+    "topic": "interview",
+    "question": "STAR 方法是什麼？如何用它來回答行為面試問題？",
+    "expected_keywords": [
+      "STAR",
+      "情境",
+      "任務",
+      "行動",
+      "結果"
+    ],
+    "answer": "",
+    "latency_ms": 60003,
+    "relevance_score": -1,
+    "keyword_hit_rate": 0.0,
+    "has_sources": false,
+    "source_count": 0,
+    "error": "timed out"
+  },
+  {
+    "id": "interview-003",
+    "topic": "interview",
+    "question": "面試前應該做哪些準備？如何研究目標公司？",
+    "expected_keywords": [
+      "公司研究",
+      "產品",
+      "文化",
+      "新聞",
+      "面試準備"
+    ],
+    "answer": "",
+    "latency_ms": 60003,
+    "relevance_score": -1,
+    "keyword_hit_rate": 0.0,
+    "has_sources": false,
+    "source_count": 0,
+    "error": "timed out"
+  },
+  {
+    "id": "interview-004",
+    "topic": "interview",
+    "question": "線上視訊面試和現場面試有哪些不同的注意事項？",
+    "expected_keywords": [
+      "視訊",
+      "線上",
+      "環境",
+      "鏡頭",
+      "網路"
+    ],
+    "answer": "您好！我是 <PERSON>Bot，很高興為您服務。\n\n很抱歉，目前內部文件中**未有相關記載**說明線上視訊面試和現場面試的注意事項差異。建議您聯繫 <PERSON>Inventor 人資部門，他們能提供更詳細且針對公司特定需求的資訊。\n\n祝您面試順利！\n[META:{\"message_id\":21}]",
+    "latency_ms": 33042,
+    "relevance_score": 1,
+    "keyword_hit_rate": 0.4,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "career-planning-001",
+    "topic": "career_planning",
+    "question": "工作三年了，感覺卡住了不知道下一步該怎麼走，如何規劃下一階段的職涯？",
+    "expected_keywords": [
+      "職涯規劃",
+      "轉職",
+      "升遷",
+      "技能",
+      "方向"
+    ],
+    "answer": "您好！很高興您能主動思考職涯發展。很理解您有種卡住的感覺，這是一個很常見的階段。\n\n很抱歉，目前內部文件中**未有相關記載**，關於員工職涯規劃或發展的建議。我無法提供您針對個人職涯發展的具體建議。\n\n不過，我建議您可以：\n\n*   **與您的主管溝通：** 坦誠地向主管表達您的想法和困惑，尋求他們的指導和建議。\n*   **尋求內部資源：** <PERSON>Inventor 可能有內部的人力資源部門或導師計畫，可以提供職涯諮詢和輔導。\n*   **探索內部轉職機會：** 考慮是否可以透過內部轉職，嘗試不同的職位或部門，拓展您的技能和經驗。\n*   **參加外部培訓或課程：** 提升您的專業",
+    "latency_ms": 13321,
+    "relevance_score": 2,
+    "keyword_hit_rate": 0.6,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "career-planning-002",
+    "topic": "career_planning",
+    "question": "想從非本科背景轉職進入科技業，需要做哪些準備？",
+    "expected_keywords": [
+      "轉職",
+      "科技",
+      "非本科",
+      "技能培養",
+      "作品集"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，很高興為您服務。\n\n很抱歉，目前內部文件中**未有相關記載**，說明非本科背景轉職進入科技業需要做的準備。這是一個很常見且重要的問題，但 <PERSON>Inventor 目前沒有相關的內部文件提供參考。\n\n建議您可以：\n\n*   **搜尋網路資源：** 網路上有很多關於轉職科技業的資訊，例如文章、部落格、論壇等。\n*   **參加相關課程或工作坊：** 學習科技產業的基礎知識和技能，例如程式設計、數據分析等。\n*   **建立人脈：** 參加科技產業的活動，與業界人士交流，了解產業趨<NRP>和職位需求。\n*   **尋求專業諮詢：** 諮詢職涯諮詢師或獵",
+    "latency_ms": 12790,
+    "relevance_score": 2,
+    "keyword_hit_rate": 0.6,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "career-planning-003",
+    "topic": "career_planning",
+    "question": "什麼時候應該考慮轉職？有哪些跡象說明現在是好時機？",
+    "expected_keywords": [
+      "轉職時機",
+      "倦怠",
+      "成長停滯",
+      "市場行情",
+      "機會"
+    ],
+    "answer": "您好！我是 <PERSON>Bot，<PERSON>Inventor 的內部知識助理。\n\n很抱歉，目前內部文件中**未有相關記載**關於「什麼時候應該考慮轉職」以及「有哪些跡象說明現在是好時機」的資訊。這屬於個人職涯發展的議題，不在 <PERSON>Inventor 產品或服務的範疇。\n\n建議您可參考以下方式尋求更專業的建議：\n\n*   **諮詢職涯顧問：** 專業的職涯顧問能針對您的個人情況提供客製化的建議。\n*   **與您的主管或 HR 部門討論：** 他們可能對您的職涯規劃有更深入的了解，並能提供內部發展機會的資訊。\n*   **參考相關的職涯發展網站或書籍：** 網路上有許多資源可以",
+    "latency_ms": 9798,
+    "relevance_score": 1,
+    "keyword_hit_rate": 0.2,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "career-planning-004",
+    "topic": "career_planning",
+    "question": "在同一家公司做了五年，是否應該離開換個環境？",
+    "expected_keywords": [
+      "跳槽",
+      "穩定",
+      "成長",
+      "薪資天花板",
+      "新環境"
+    ],
+    "answer": "您好，我是 <PERSON>Bot。\n\n很抱歉，內部文件中未有關於員工職涯發展或離職建議的相關記載，建議聯繫人力資源部門或您的主管，他們能提供更符合您個人情況的建議。\n\n在您考慮是否離開目前公司時，建議您思考以下幾個面向：\n\n*   **個人職涯目標：** 目前的工作是否能幫助您實現職涯目標？\n*   **工作滿意度：** 您對目前的工作內容、工作環境、團隊合作等方面是否感到滿意？\n*   **發展機會：** 公司是否有提供足夠的學習和成長機會？\n*   **市場趨<NRP>：** 了解市場上是否有更符合您期望的職位或公司。\n\n祝您做出最適合自己的決定！\n[META:{\"message_id\"",
+    "latency_ms": 6961,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.2,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "salary-001",
+    "topic": "salary",
+    "question": "面試時被問到期望薪資，應該先開口還是等對方出價？",
+    "expected_keywords": [
+      "期望薪資",
+      "先開口",
+      "市場行情",
+      "談判",
+      "主動"
+    ],
+    "answer": "您好！我是 <PERSON>Bot，很高興能為您服務。\n\n關於面試時被問到期望薪資，這個問題確實是許多求職者會遇到的挑戰。根據內部文件中未有相關記載，我無法提供 <PERSON>Inventor 內部針對此問題的標準建議。\n\n一般來說，面試時是否先開口或等待對方出價，並沒有絕對的答案，取決於您的策略和面試情境。\n\n*   **先開口：** 展現您對自身價值的了解，並能主動溝通。但需事先做好功課，了解市場行情和您自身的能力與經驗，給出合理的範圍。\n*   **等待對方出價：** 可以避免您出價過高或過低，並了解公司對您的價值觀。但可能會讓您在薪資協商中處於劣<NRP>。\n\n建議您在面試前，先研究",
+    "latency_ms": 10377,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.8,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "salary-002",
+    "topic": "salary",
+    "question": "如何知道自己目前的薪資是否低於市場水準？如何蒐集薪資資訊？",
+    "expected_keywords": [
+      "薪資行情",
+      "市場水準",
+      "調查",
+      "比較",
+      "數據"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，很高興為您服務。\n\n關於您詢問的「如何知道自己目前的薪資是否低於市場水準？如何蒐集薪資資訊？」，很抱歉，目前內部文件中**未有相關記載，建議聯繫對應部門（例如：人資部門）確認**。\n\n一般來說，您可以透過以下方式來了解自己的薪資是否符合市場水準：\n\n*   **線上薪資調查網站：** 許多網站提供各行業、職位的薪資調查數據，您可以參考這些資訊。\n*   **招聘網站：** 瀏覽招聘網站上的職位發布，可以了解同等職位的薪資範圍。\n*   **行業報告：** 某些行業協會或研究機構會發布薪資報告，提供更詳細的薪資數據。\n*   **與同行交流：** 與同業或朋友",
+    "latency_ms": 10062,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.6,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "salary-003",
+    "topic": "salary",
+    "question": "收到 offer 後如何進行薪資談判？有哪些實用的話術？",
+    "expected_keywords": [
+      "offer",
+      "談判",
+      "話術",
+      "counter offer",
+      "溝通"
+    ],
+    "answer": "您好！我是 <PERSON>Bot，<PERSON>Inventor 的內部知識助理。\n\n很抱歉，目前內部文件中**未有相關記載**關於收到 offer 後如何進行薪資談判，以及實用話術。這屬於人力資源或招募相關的議題，不在 <PERSON>Inventor 的產品或服務範圍內。\n\n建議您聯繫 <PERSON>Inventor 的人力資源部門，或查閱相關的薪資談判指南，以獲得更專業的建議。\n\n祝您薪資談判順利！\n[META:{\"message_id\":36}]",
+    "latency_ms": 4523,
+    "relevance_score": 1,
+    "keyword_hit_rate": 0.6,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "workplace-001",
+    "topic": "workplace",
+    "question": "遇到不合理的主管或主管的管理方式讓你很痛苦，應該怎麼處理？",
+    "expected_keywords": [
+      "主管",
+      "溝通",
+      "向上管理",
+      "離職",
+      "邊界"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，很高興為您服務。\n\n關於您遇到的主管問題，這確實是職場上常見且令人困擾的情況。由於目前內部文件中沒有相關記載，我無法提供 <PERSON>Inventor 內部針對此類問題的具體處理流程。\n\n不過，我可以提供一些通用的建議，希望能對您有所幫助：\n\n1. **記錄事件：** 詳細記錄主管不合理行為的具體時間、地點、事件內容，以及對您的影響。這有助於您釐清問題，並在必要時提供證據。\n2. **嘗試溝通：** 如果您覺得可以，嘗試與主管進行坦誠的溝通，表達您的感受和困擾，並嘗試理解主管的觀點。\n3. **尋求協助：** 如果直接溝通無效，您可以考慮向 HR 部門或",
+    "latency_ms": 14106,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.4,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "workplace-002",
+    "topic": "workplace",
+    "question": "在職場中如何建立好人緣，同時又不失去自己的立場？",
+    "expected_keywords": [
+      "人際關係",
+      "職場",
+      "邊界",
+      "溝通",
+      "信任"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，很高興為您服務。\n\n很抱歉，目前內部文件中未有關於在職場中建立人緣且不失去立場的相關記載，建議聯繫人力資源部門或相關的職場發展顧問，他們或許能提供更專業的建議。\n\n我會持續學習，希望能未來能提供您更完善的協助。 感謝您的提問！\n[META:{\"message_id\":40}]",
+    "latency_ms": 3547,
+    "relevance_score": 1,
+    "keyword_hit_rate": 0.2,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "workplace-003",
+    "topic": "workplace",
+    "question": "職場上遇到搶功勞的同事，應該如何應對？",
+    "expected_keywords": [
+      "搶功勞",
+      "同事",
+      "溝通",
+      "留下記錄",
+      "向主管反映"
+    ],
+    "answer": "您好，我是 <PERSON>Bot。\n\n很抱歉，目前內部文件中沒有關於職場上應對搶功勞同事的相關資訊。這屬於職場人際關係的議題，不在 <PERSON>Inventor 的產品或服務範圍之內。\n\n建議您可以參考以下方式來應對：\n\n*   **直接溝通：** 坦誠地與同事溝通，表達您的感受和觀點。\n*   **保留證據：** 記錄您的工作成果和貢獻，以備不時之需。\n*   **尋求協助：** 如果情況嚴重，可以向主管或 HR 尋求協助。\n\n若您需要更多資訊，建議聯繫公司的人力資源部門或相關的職場人際關係顧問，他們能提供更專業的建議。\n\n祝您工作順利！\n[META:{\"message_id\":42}",
+    "latency_ms": 7094,
+    "relevance_score": 2,
+    "keyword_hit_rate": 0.6,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "job-search-001",
+    "topic": "job_search",
+    "question": "透過人脈找工作和直接投遞履歷，哪種方式效果比較好？",
+    "expected_keywords": [
+      "人脈",
+      "內推",
+      "履歷",
+      "效率",
+      "求職"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，<PERSON>Inventor 的內部知識助理。\n\n關於您詢問的「透過人脈找工作和直接投遞履歷，哪種方式效果比較好？<DATE_TIME>這個問題，很抱歉，**內部文件中未有相關記載，建議聯繫對應部門確認**。\n\n一般來說，這兩種方式各有優缺點，效果取決於您的個人情況和目標職位。\n\n*   **透過人脈找工作：** 能夠更深入了解公司文化和職位內容，有機會獲得內部推薦，成功率通常較高。但需要積極拓展和維護人脈。\n*   **直接投遞履歷：** 適用於沒有明確人脈或希望擴大求職範圍的情況。但競爭較激烈，需要履歷突出優<NRP>。\n\n建議您可以根據自身情況綜合",
+    "latency_ms": 8364,
+    "relevance_score": 2,
+    "keyword_hit_rate": 0.6,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "job-search-002",
+    "topic": "job_search",
+    "question": "同時談多家公司 offer，如何處理 offer 時間壓力？",
+    "expected_keywords": [
+      "多家offer",
+      "時間",
+      "延長",
+      "溝通",
+      "策略"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，<PERSON>Inventor 的內部知識助理。\n\n關於同時談多家公司的 offer 並處理時間壓力，很抱歉，目前內部文件中未有相關記載，建議聯繫人力資源部門或相關管理層確認。\n\n一般來說，處理多方 offer 的時間壓力需要謹慎處理，建議您：\n\n*   **誠實溝通：** 向各家公司坦誠您正在評估其他 offer，並告知您預計的回覆時間。\n*   **評估優先順序：** 仔細評估各家公司的薪資福利、職位發展、公司文化等因素，找出最符合您期望的選項。\n*   **合理延遲：** 在不影響談判進度的前提下，可以嘗試爭取一些時間，以便更全面地評估。\n*   *",
+    "latency_ms": 8596,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.4,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "job-search-003",
+    "topic": "job_search",
+    "question": "在職中求職如何保持低調，避免現任公司知道？",
+    "expected_keywords": [
+      "在職求職",
+      "保密",
+      "LinkedIn",
+      "低調",
+      "時間管理"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，<PERSON>Inventor 的內部知識助理。\n\n關於您在職中求職並希望避免現任公司知曉的問題，由於內部文件中未有相關記載，我無法提供直接的建議。這屬於個人隱私和職業發展的敏感議題，建議您參考以下通用建議，並謹慎評估自身情況：\n\n*   **謹慎使用公司資源：** 避免在公司電腦或網路使用求職網站、撰寫履歷或與潛在雇主聯繫。\n*   **保護個人資訊：** 在履歷和 LinkedIn 等平台使用個人信箱和電話號碼，避免使用公司信箱和電話。\n*   **控制社交媒體：** 調整社交媒體的隱私設定，避免公開求職資訊。\n*   **小心談話：** 在公司內部避",
+    "latency_ms": 12906,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.2,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "job-search-004",
+    "topic": "job_search",
+    "question": "投了幾十封履歷都沒有回音，可能是什麼原因？",
+    "expected_keywords": [
+      "履歷",
+      "石沉大海",
+      "ATS",
+      "客製化",
+      "關鍵字"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，<PERSON>Inventor 的內部知識助理。\n\n很抱歉聽到您投了幾十封履歷卻沒有收到回覆，這確實令人沮喪。由於目前內部文件中未有相關記載，我無法直接提供針對此問題的具體原因分析。\n\n不過，一般來說，求職過程中沒有回音可能的原因有很多，例如：\n\n*   **履歷與職位描述不符：** 履歷內容可能沒有充分展現您符合職位所需的技能和經驗。\n*   **競爭激烈：** 某些職位競爭非常激烈，即使您是合格的候選人，也可能因為其他候選人更符合需求而被淘汰。\n*   **招聘流程延遲：** 招聘流程可能因為內部審核、面試排程等因素而延遲。\n*   **公司招聘策略：",
+    "latency_ms": 14923,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.2,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "promotion-001",
+    "topic": "promotion",
+    "question": "如何讓主管注意到自己的貢獻，增加升遷機會？",
+    "expected_keywords": [
+      "升遷",
+      "曝光",
+      "成果",
+      "向上管理",
+      "主動"
+    ],
+    "answer": "您好！我是 <PERSON>Bot，很高興為您服務。\n\n關於如何讓主管注意到您的貢獻，增加升遷機會，很抱歉，目前內部文件中未有相關記載，建議聯繫人力資源部門或您的直接主管，他們能提供更具體的建議和指導。\n\n不過，一般來說，以下是一些常見的建議，或許對您有所幫助：\n\n*   **定期與主管溝通：** 安排定期的進度報告或一對一會議，分享您的工作成果、遇到的挑戰以及您所做的努力。\n*   **量化您的成就：** 盡可能用數據和具體結果來呈現您的貢獻，例如「DasLoop 導入後，工地安全事件降低了 X%」。\n*   **主動承擔責任：** 勇於接受新的挑戰和任務，並展現解決問題的能力。\n*   *",
+    "latency_ms": 14481,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.6,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "promotion-002",
+    "topic": "promotion",
+    "question": "被後進者超越升遷，感到不公平，應該怎麼看待這件事？",
+    "expected_keywords": [
+      "升遷",
+      "公平",
+      "後進超越",
+      "心態",
+      "調整"
+    ],
+    "answer": "您好，我是 <PERSON>Bot。很理解您因為升遷不公而感到沮喪和不公平，這是一個很常見的情緒反應。\n\n很抱歉，目前內部文件中**未有相關記載**，無法提供關於個人職涯發展或情緒管理的建議。這類問題通常涉及複雜的人格、公司文化和績效評估等因素，我無法提供直接的解決方案。\n\n建議您可以：\n\n*   **與您的主管坦誠溝通：** 了解升遷決定的具體原因，以及您在哪些方面可以改進。\n*   **尋求 HR 的協助：** HR 可以提供客觀的觀點，並協助您了解公司的升遷制度。\n*   **與信任的同事或導師交流：** 聽取他們的建議和經驗。\n*   **自我反思：** 評估自己的工作表現和職業發展目",
+    "latency_ms": 11097,
+    "relevance_score": 2,
+    "keyword_hit_rate": 0.4,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "promotion-003",
+    "topic": "promotion",
+    "question": "升遷評估標準通常有哪些？如何系統性地準備晉升？",
+    "expected_keywords": [
+      "升遷標準",
+      "績效",
+      "領導力",
+      "影響力",
+      "準備"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，<PERSON>Inventor 的內部知識助理。\n\n很抱歉，目前內部文件中**未有相關記載**，關於升遷評估標準以及如何系統性地準備晉升。這屬於人力資源管理範疇，建議您直接聯繫 <PERSON>Inventor 的人力資源部門，他們能提供更詳細且準確的資訊。\n\n您可以向人力資源部門詢問以下內容：\n\n*   公司整體升遷評估的標準和指標\n*   各部門或職位特定的升遷要求\n*   績效考核的權重分配\n*   是否有相關的培訓或發展計畫可以幫助您提升能力\n\n祝您一切順利！\n[META:{\"message_id\":56}]",
+    "latency_ms": 8397,
+    "relevance_score": 2,
+    "keyword_hit_rate": 0.4,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "industry-001",
+    "topic": "industry_insight",
+    "question": "台灣的外商公司和本土企業在工作文化上有哪些主要差異？",
+    "expected_keywords": [
+      "外商",
+      "本土",
+      "文化差異",
+      "工作方式",
+      "台灣"
+    ],
+    "answer": "您好！我是 <PERSON>Bot，很高興為您服務。\n\n很抱歉，目前內部文件中**未有相關記載**，無法提供台灣外商公司和本土企業工作文化差異的資訊。建議您聯繫人力資源部門或相關產業研究報告，以獲得更詳細的資訊。\n\n如果您有其他關於 <PERSON>Inventor 產品 DasLoop、DasTrack、DasAoA、DasAir、DasGas、DasCAS、DasWater、DasPower 或 DasIoT 平台的問題，我很樂意為您解答。\n[META:{\"message_id\":58}]",
+    "latency_ms": 6862,
+    "relevance_score": 0,
+    "keyword_hit_rate": 0.8,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "industry-002",
+    "topic": "industry_insight",
+    "question": "現在 AI 的發展，哪些職位比較不容易被取代？",
+    "expected_keywords": [
+      "AI",
+      "取代",
+      "職位",
+      "未來",
+      "技能"
+    ],
+    "answer": "您好！我是 <PERSON>Bot，很高興為您服務。\n\n關於您詢問的 AI 發展對職位影響的問題，很抱歉，目前內部文件中**未有相關記載**。AI 的發展趨<NRP>以及對各行業職位影響的分析，屬於較為廣泛的議題，不在 <PERSON>Inventor 目前的知識範疇內。\n\n建議您可以參考其他公開資訊來源，例如：\n\n*   **人力銀行網站的趨<NRP>分析報告：** 許多人力銀行會定期發布關於 AI 對就業市場影響的分析。\n*   **科技新聞網站：** 關注科技新聞網站的報導，了解 AI 發展對各行業的影響。\n*   **學術研究報告：** 搜尋相關學術研究報告，深入了解 AI 對就業市場",
+    "latency_ms": 14707,
+    "relevance_score": 1,
+    "keyword_hit_rate": 0.4,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "industry-003",
+    "topic": "industry_insight",
+    "question": "新創公司和大企業各自的優缺點是什麼？如何選擇？",
+    "expected_keywords": [
+      "新創",
+      "大企業",
+      "優缺點",
+      "選擇",
+      "職涯"
+    ],
+    "answer": "您好！我是 <PERSON>Bot，<PERSON>Inventor 的內部知識助理。\n\n關於新創公司和大企業各自的優缺點以及如何選擇，由於目前內部文件中未有相關記載，我無法直接提供詳細的分析。\n\n不過，我可以提供一些普遍性的觀點，供您參考：\n\n**新創公司：**\n\n*   **優點：**\n    *   **創新性強：** 新創公司通常更具實驗精神，勇於嘗試新的技術和商業模式。\n    *   **成長潛力大：** 如果新創公司成功，成長速度可能非常快，提供更多發展機會。\n    *   **工作彈性高：** 組織結構通常較為扁平，工作彈性可能較大。\n    *   **參與感強：** 員工",
+    "latency_ms": 58906,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.8,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "skill-001",
+    "topic": "skill_development",
+    "question": "在職進修如何找時間學習？如何讓自己持續進步？",
+    "expected_keywords": [
+      "在職進修",
+      "時間管理",
+      "學習",
+      "持續",
+      "技能"
+    ],
+    "answer": "您好，我是 <PERSON>Bot，很高興為您服務。\n\n關於您詢問的在職進修如何找時間學習以及如何持續進步的問題，很抱歉，目前內部文件中未有相關記載，建議聯繫人力資源部門或相關培訓部門確認。\n\n不過，我可以提供一些普遍性的建議，希望能對您有所幫助：\n\n*   **時間管理：** 善用零碎時間，例如通勤、午休等，可以利用線上課程或閱讀相關資料。\n*   **設定明確目標：** 將進修目標分解為可執行的小步驟，更容易達成並保持動力。\n*   **尋求支持：** 與同事或朋友分享進修目標，互相鼓勵和支持。\n*   **將學習融入工作：** 嘗試將所學知識應用於實際工作，加深理解並提升工作效率。\n* ",
+    "latency_ms": 46120,
+    "relevance_score": 3,
+    "keyword_hit_rate": 0.8,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  },
+  {
+    "id": "skill-002",
+    "topic": "skill_development",
+    "question": "英文能力對職涯發展有多重要？如何在工作中提升英文？",
+    "expected_keywords": [
+      "英文",
+      "職涯",
+      "外商",
+      "溝通",
+      "提升"
+    ],
+    "answer": "您好！我是 <PERSON>Bot，<PERSON>Inventor 的內部知識助理。\n\n很抱歉，目前內部文件中**未有相關記載**，無法提供關於英文能力對職涯發展<NRP>以及如何在工作中提升英文的資訊。\n\n建議您可以聯繫 <PERSON>Inventor 的人力資源部門或相關培訓部門，他們能提供更專業的建議和資源。\n\n感謝您的提問！\n[META:{\"message_id\":66}]",
+    "latency_ms": 11547,
+    "relevance_score": 1,
+    "keyword_hit_rate": 0.6,
+    "has_sources": false,
+    "source_count": 0,
+    "error": null
+  }
+]

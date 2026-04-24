@@ -25,10 +25,12 @@ TOPIC_KEYWORDS: dict[str, list[str]] = {
     "job_search": [
         "找工作", "求職", "job search", "投履歷", "應徵", "獵頭", "headhunt",
         "LinkedIn", "104", "1111", "job board", "networking",
+        "offer", "回音", "回覆", "多家公司",
     ],
     "career_planning": [
         "職涯", "career", "規劃", "轉職", "career change", "轉行", "方向",
         "目標設定", "goal", "roadmap", "路線圖", "五年計畫", "十年計畫",
+        "換個環境", "年資", "是否應該離",
     ],
     "salary": [
         "薪水", "薪資", "salary", "待遇", "offer", "package", "談薪",
@@ -47,10 +49,12 @@ TOPIC_KEYWORDS: dict[str, list[str]] = {
         "技能", "skill", "學習", "learn", "課程", "course", "證照",
         "certification", "upskill", "reskill", "軟技能", "soft skill",
         "溝通", "communication", "簡報", "presentation",
+        "英文", "外語", "語言",
     ],
     "industry_insight": [
         "產業", "industry", "趨勢", "trend", "市場", "market", "AI",
         "科技", "tech", "外商", "MNC", "外資", "台積電", "TSMC",
+        "新創", "大企業", "優缺點",
     ],
 }
 
