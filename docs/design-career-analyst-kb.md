@@ -2,7 +2,7 @@
 
 **Author**: Albert  
 **Date**: 2026-04-18  
-**Last Updated**: 2026-04-21 (Phase 1–4 complete; ingestion in progress)  
+**Last Updated**: 2026-04-27 (Phase 1–6 complete; RAG eval 2.77/4.0)  
 **Status**: In Progress  
 **Scope**: 職涯分析師 KB — YouTube 影片知識庫 + VoltAgent Agent 管理層
 
@@ -543,29 +543,29 @@ python eval/rag_eval.py --url http://localhost:8000
 python eval/latency_bench.py --url http://localhost:8000 --runs 20 --concurrency 3
 ```
 
-### Phase 5 — UI & E2E (1–2 天)
+### Phase 5 — UI & E2E ✅ Complete
 
 | Task | Status | Deliverable |
 |------|--------|-------------|
-| Chat UI 接入 VoltAgent（port 3141） | ⏳ Pending | `frontend/index.html` |
-| 新增 topic filter 下拉選單 | ⏳ Pending | `frontend/index.html` |
-| Sources 顯示影片標題 + YouTube 連結 | ⏳ Pending | `frontend/index.html` |
-| Nginx 轉發 `/agents/*` → port 3141 | ⏳ Pending | `docker/nginx.conf` |
-| E2E：履歷評估完整流程 | ⏳ Pending | `e2e/resume_flow.spec.ts` |
-| E2E：面試問答流程 | ⏳ Pending | `e2e/interview_flow.spec.ts` |
+| Chat UI 接入 VoltAgent（port 3141） | ✅ Done | `frontend/index.html` |
+| 新增 topic filter 下拉選單 | ✅ Done | `frontend/index.html` |
+| Sources 顯示影片標題 + YouTube 連結 | ✅ Done | `frontend/index.html` |
+| Nginx 轉發 `/agents/*` → port 3141 | ✅ Done | `docker/nginx.conf` |
+| E2E：履歷評估完整流程 | ✅ Done | `e2e/resume_flow.spec.ts` |
+| E2E：面試問答流程 | ✅ Done | `e2e/interview_flow.spec.ts` |
 
-### Phase 6 — Classifier 改善（目標 ≥ 85% routing accuracy）
+### Phase 6 — Classifier 改善 ✅ Complete（routing 100%，30/30）
 
-> 背景：Phase 4 routing eval 初測 83.3%（25/30），5 個 miss 原因已知。
+> 背景：Phase 4 routing eval 初測 83.3%（25/30），5 個 miss 原因已知。Phase 5 完成後補強。
 
 | Task | Status | Deliverable |
 |------|--------|-------------|
-| `job_search` 關鍵字補強（offer 時間壓力、投履歷無回音） | ⏳ Pending | `src/ingestion/career_classifier.py` |
-| `skill_development` 關鍵字補強（英文能力、職涯成長） | ⏳ Pending | `src/ingestion/career_classifier.py` |
-| `industry_insight` 關鍵字補強（新創 vs 大企業） | ⏳ Pending | `src/ingestion/career_classifier.py` |
-| `career_planning` fallback 降低（五年、離職、換環境） | ⏳ Pending | `src/ingestion/career_classifier.py` |
-| multi-topic 問題的 primary topic 優先邏輯 | ⏳ Pending | `src/ingestion/career_classifier.py` |
-| 重跑 `routing_eval.py` 驗證 ≥ 85% | ⏳ Pending | `eval/results/routing_eval_*.json` |
+| `job_search` 關鍵字補強（offer 時間壓力、投履歷無回音） | ✅ Done | `src/ingestion/career_classifier.py` |
+| `skill_development` 關鍵字補強（英文能力、職涯成長） | ✅ Done | `src/ingestion/career_classifier.py` |
+| `industry_insight` 關鍵字補強（新創 vs 大企業） | ✅ Done | `src/ingestion/career_classifier.py` |
+| `career_planning` fallback 降低（五年、離職、換環境） | ✅ Done | `src/ingestion/career_classifier.py` |
+| multi-topic 問題的 primary topic 優先邏輯 | ✅ Done | `src/ingestion/career_classifier.py` |
+| 重跑 `routing_eval.py` 驗證 ≥ 85% | ✅ Done — **100%** (30/30) | `eval/results/routing_eval_20260424_144053.json` |
 
 ---
 
