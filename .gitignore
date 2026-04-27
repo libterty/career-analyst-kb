@@ -73,6 +73,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .results/
+e2e/
 
 # 忽略 data 資料夾下所有內容
 data/raw/*
@@ -87,5 +88,13 @@ data/embeddings/*
 !data/embeddings/.gitkeep
 
 tmp/*
+
+# 忽略monorepo中其他服務的編譯輸出和依賴
 services/voltagent-career/dist/*
 services/voltagent-career/node_modules/*
+
+# 忽略claude相關的資料夾和檔案
+.claude/*
+
+# 忽略eval result
+eval/results/*
