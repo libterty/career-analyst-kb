@@ -21,21 +21,23 @@ echo ""
 # 1. Prerequisites
 command -v ollama >/dev/null 2>&1 || { echo "ERROR: ollama not found. Install from https://ollama.com"; exit 1; }
 
-if ! command -v huggingface-cli >/dev/null 2>&1; then
-  echo "Installing huggingface_hub..."
-  pip install -q huggingface_hub
-fi
-
 # 2. Download GGUF
 mkdir -p "$STAGING"
-echo "[1/3] Downloading GGUF..."
-huggingface-cli download "${HF_REPO}" "${GGUF_FILE}" \
-  --local-dir "${STAGING}" \
-  --local-dir-use-symlinks False
+DEST="${STAGING}/${GGUF_FILE}"
+
+# Resume-capable: skip if already fully downloaded
+if [[ -f "$DEST" ]]; then
+  echo "[1/3] Already downloaded: ${DEST}"
+else
+  echo "[1/3] Downloading GGUF (resume-capable, shows % progress)..."
+  curl -L --progress-bar --continue-at - \
+    "https://huggingface.co/${HF_REPO}/resolve/main/${GGUF_FILE}" \
+    -o "$DEST"
+fi
 
 # 3. Patch GGUF path into Modelfile
 echo "[2/3] Patching Modelfile with GGUF path..."
-sed "s|/GGUF_PATH_PLACEHOLDER|${STAGING}/${GGUF_FILE}|" \
+sed "s|/GGUF_PATH_PLACEHOLDER|${DEST}|" \
   "${MODELFILE}" > /tmp/Modelfile.qwen3-30b.resolved
 
 # 4. Register with Ollama
