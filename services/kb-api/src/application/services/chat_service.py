@@ -164,11 +164,11 @@ class ChatService:
 
         # 5. 組裝訊息列表（含對話歷史）
         memory = self._get_memory(session_id)
-        history = memory.load_memory_variables({}).get("history", "")
+        history_messages = memory.load_memory_variables({}).get("history", [])
         system_prompt = await self._get_system_prompt()
         messages = [SystemMessage(content=system_prompt.format(context=context))]
-        if history:
-            messages.append(AIMessage(content=history))
+        if isinstance(history_messages, list):
+            messages.extend(history_messages)
         messages.append(HumanMessage(content=question))
 
         # 6. LLM 串流生成 + 輸出過濾
@@ -274,7 +274,8 @@ class ChatService:
         """取得或建立指定 session 的對話記憶。"""
         if session_id not in self._memories:
             self._memories[session_id] = ConversationBufferWindowMemory(
-                k=self._memory_window
+                k=self._memory_window,
+                return_messages=True,
             )
         return self._memories[session_id]
 

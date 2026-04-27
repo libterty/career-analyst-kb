@@ -134,6 +134,8 @@ def ingest(incremental: bool, dry_run: bool) -> None:
     total_stored = 0
     skipped = 0
 
+    total_files = len(txt_files)
+    processed = 0
     for txt_path in txt_files:
         video_id = _video_id_from_stem(txt_path.stem)
 
@@ -141,11 +143,12 @@ def ingest(incremental: bool, dry_run: bool) -> None:
             skipped += 1
             continue
 
+        processed += 1
         title, upload_date = _title_and_date_from_vtt(video_id)
         text = txt_path.read_text(encoding="utf-8", errors="replace")
 
         if not text.strip():
-            logger.warning(f"Empty transcript: {txt_path.name}")
+            logger.warning(f"[{processed}/{total_files}] Empty transcript: {txt_path.name}")
             continue
 
         transcript_chunks = chunker.chunk(
@@ -160,7 +163,7 @@ def ingest(incremental: bool, dry_run: bool) -> None:
         if dry_run:
             topics = {t for tc in transcript_chunks for t in tc.metadata["topics"]}
             logger.info(
-                f"[DRY-RUN] {video_id}: {len(transcript_chunks)} chunks | "
+                f"[{processed}/{total_files}] [DRY-RUN] {video_id}: {len(transcript_chunks)} chunks | "
                 f"topics={topics}"
             )
             continue
@@ -168,7 +171,7 @@ def ingest(incremental: bool, dry_run: bool) -> None:
         domain_chunks = [_to_domain_chunk(tc, title=title, upload_date=upload_date) for tc in transcript_chunks]
         stored = embedder.embed_and_store(domain_chunks)  # type: ignore[union-attr]
         total_stored += stored
-        logger.success(f"Stored {stored} chunks for {video_id} ({title[:40]})")
+        logger.success(f"[{processed}/{total_files}] Stored {stored} chunks for {video_id} ({title[:40]})")
 
     logger.info(
         f"\n{'='*50}\n"

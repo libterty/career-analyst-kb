@@ -104,12 +104,13 @@ def keyword_hit_rate(answer: str, keywords: list[str]) -> float:
 def run_eval(base_url: str, token: str, use_judge: bool) -> dict:
     dataset = load_dataset()
     results = []
+    run_ts = int(time.time())
 
     with httpx.Client() as client:
         for i, entry in enumerate(dataset, 1):
             print(f"[{i:02d}/{len(dataset)}] {entry['id']} ...", end=" ", flush=True)
 
-            session_id = f"eval-{entry['id']}"
+            session_id = f"eval-{entry['id']}-{run_ts}"
             t0 = time.perf_counter()
             try:
                 data = call_kb_api(

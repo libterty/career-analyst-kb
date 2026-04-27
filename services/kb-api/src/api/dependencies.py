@@ -145,7 +145,7 @@ def _build_chat_service() -> ChatService:
 
     retriever = MilvusRetriever(host=host, port=port)
     embedder = EmbeddingService(milvus_host=host, milvus_port=port)
-    search_engine = HybridSearchEngine(retriever, dense_top_k=50, final_top_k=5)
+    search_engine = HybridSearchEngine(retriever, dense_top_k=50, final_top_k=8, bm25_top_k=25)
     guardrail = SecurityGuardrail()
     query_enhancer = PromptOptimizer()
     llm = provider.build_llm(temperature=0.3, streaming=True)

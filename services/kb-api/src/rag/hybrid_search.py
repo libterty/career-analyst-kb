@@ -21,12 +21,31 @@ def _tokenize_zh(text: str) -> list[str]:
     優先使用 jieba 做詞語切分（如「修行方法」→ [「修行」,「方法」]），
     若 jieba 未安裝則 fallback 到字元切分（每個漢字獨立）。
     jieba 分詞能讓 BM25 更準確地匹配詞語而非單字。
+
+    特別處理：
+    - 英文大寫縮寫（STAR、SHARE、BM25 等）保留為單一 token
+    - 英文小寫單詞（method、interview 等）保留為整個 token，
+      避免 jieba/字元切分將其拆成單個字母降低 BM25 精準度
     """
+    import re
+    tokens: list[str] = []
+    # Split on ASCII word sequences (uppercase acronyms, lowercase words, numbers) to preserve them
+    _EN_WORD = re.compile(r"([A-Za-z]{2,}\d*|\d+[A-Za-z]{2,})")
+    parts = _EN_WORD.split(text)
     try:
         import jieba  # type: ignore
-        return list(jieba.cut(text))
+        for part in parts:
+            if _EN_WORD.fullmatch(part):
+                tokens.append(part.lower())
+            elif part:
+                tokens.extend(jieba.cut(part))
     except ImportError:
-        return list(text)
+        for part in parts:
+            if _EN_WORD.fullmatch(part):
+                tokens.append(part.lower())
+            elif part:
+                tokens.extend(list(part))
+    return tokens
 
 
 class HybridSearchEngine(ISearchEngine):
@@ -108,31 +127,17 @@ class HybridSearchEngine(ISearchEngine):
         if not dense_results:
             return []
 
-        # 2. 全語料庫 BM25 搜索（若指定 topic 則僅在該類別的語料庫上執行）
+        # 2. 全語料庫 BM25 搜索（不限 topic，讓關鍵字精確匹配可跨 section 召回）
+        # Dense 已做 topic 過濾（精準），BM25 覆蓋全語料庫（召回），RRF 融合兩路優勢。
         self._ensure_bm25_index()
-        bm25_corpus = (
-            [c for c in self._bm25_corpus if c.section == topic]
-            if topic and self._bm25_corpus
-            else self._bm25_corpus
-        )
-        if self._bm25_index is not None and bm25_corpus:
-            active_corpus: list[SearchResult] = bm25_corpus
+        if self._bm25_index is not None and self._bm25_corpus:
+            active_corpus: list[SearchResult] = self._bm25_corpus
             tokenized_query = _tokenize_zh(query)
-            if topic and bm25_corpus is not self._bm25_corpus:
-                # Rebuild a topic-scoped BM25 index on the fly (cheap for small subsets)
-                tokenized_sub = [_tokenize_zh(c.content) for c in bm25_corpus]
-                bm25_sub = BM25Okapi(tokenized_sub)
-                bm25_scores_arr = bm25_sub.get_scores(tokenized_query)
-                bm25_top_indices = sorted(
-                    range(len(bm25_scores_arr)), key=lambda i: -bm25_scores_arr[i]
-                )[: self.bm25_top_k]
-                bm25_top_results = [active_corpus[i] for i in bm25_top_indices]
-            else:
-                bm25_scores = self._bm25_index.get_scores(tokenized_query)
-                bm25_top_indices = sorted(
-                    range(len(bm25_scores)), key=lambda i: -bm25_scores[i]
-                )[: self.bm25_top_k]
-                bm25_top_results = [active_corpus[i] for i in bm25_top_indices]
+            bm25_scores = self._bm25_index.get_scores(tokenized_query)
+            bm25_top_indices = sorted(
+                range(len(bm25_scores)), key=lambda i: -bm25_scores[i]
+            )[: self.bm25_top_k]
+            bm25_top_results = [active_corpus[i] for i in bm25_top_indices]
         else:
             # Fallback：BM25 僅在 Dense 候選上計算（舊行為）
             corpus_texts = [r.content for r in dense_results]
@@ -155,14 +160,15 @@ class HybridSearchEngine(ISearchEngine):
         bm25_rank = {r.chunk_id: rank for rank, r in enumerate(bm25_top_results, start=1)}
 
         # 5. RRF 融合：分數 = 向量貢獻 + BM25 貢獻
-        #    未出現在某路結果中的切塊，以語料庫總大小 + 1 作為懲罰排名，
-        #    確保 BM25 rank=1 對 dense rank=1 有足夠的競爭力。
-        corpus_size = len(bm25_corpus) if bm25_corpus else len(dense_results)
+        #    對稱懲罰：未出現在某路的切塊以 max(dense, bm25)+1 作為懲罰排名。
+        #    這讓 BM25-only 跨 section 結果（如 STAR 在 resume section）
+        #    能與 Dense-only 結果公平競爭，而非被 corpus_size=14K 的巨大懲罰壓死。
+        path_penalty = max(len(dense_results), len(bm25_top_results)) + 1
 
         rrf_scores: dict[str, float] = defaultdict(float)
         for chunk_id in chunk_map:
-            dr = dense_rank.get(chunk_id, corpus_size + 1)
-            br = bm25_rank.get(chunk_id, corpus_size + 1)
+            dr = dense_rank.get(chunk_id, path_penalty)
+            br = bm25_rank.get(chunk_id, path_penalty)
             rrf_scores[chunk_id] = 1.0 / (self.RRF_K + dr) + 1.0 / (self.RRF_K + br)
 
         # 6. 依 RRF 分數排序，取前 final_top_k 筆
