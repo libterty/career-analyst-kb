@@ -17,7 +17,7 @@ _EMBED_DIMS: dict[str, int] = {
     "text-embedding-ada-002": 1536,
 }
 
-_DEFAULT_LLM_MODEL = "gemma3:12b"
+_DEFAULT_LLM_MODEL = "qwen3-30b-a3b"
 _DEFAULT_EMBED_MODEL = "nomic-embed-text"
 
 

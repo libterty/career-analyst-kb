@@ -12,6 +12,61 @@ import json
 import time
 from typing import AsyncIterator, Callable, Any
 
+
+class _ThinkFilter:
+    """Strips <think>...</think> reasoning traces from streamed tokens.
+
+    Buffers tokens while inside a <think> block and logs them at DEBUG level
+    instead of forwarding to the client.
+    """
+
+    def __init__(self) -> None:
+        self._buf = ""
+        self._in_think = False
+
+    def feed(self, token: str) -> str:
+        """Return the portion of *token* that should be sent to the client."""
+        self._buf += token
+        out = ""
+
+        while self._buf:
+            if self._in_think:
+                end = self._buf.find("</think>")
+                if end == -1:
+                    # still inside — consume everything, keep possible partial tag
+                    if len(self._buf) > 8:
+                        logger.debug(f"[think] {self._buf[:-8]}")
+                        self._buf = self._buf[-8:]
+                    break
+                else:
+                    logger.debug(f"[think] {self._buf[:end]}")
+                    self._buf = self._buf[end + 8:]
+                    self._in_think = False
+            else:
+                start = self._buf.find("<think>")
+                if start == -1:
+                    # no think block — flush everything except possible partial tag
+                    if len(self._buf) > 7:
+                        out += self._buf[:-7]
+                        self._buf = self._buf[-7:]
+                    break
+                else:
+                    out += self._buf[:start]
+                    self._buf = self._buf[start + 7:]
+                    self._in_think = True
+
+        return out
+
+    def flush(self) -> str:
+        """Flush remaining buffer after stream ends (only if not in a think block)."""
+        if self._in_think:
+            logger.debug(f"[think] {self._buf}")
+            self._buf = ""
+            return ""
+        out = self._buf
+        self._buf = ""
+        return out
+
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from loguru import logger
@@ -171,12 +226,20 @@ class ChatService:
             messages.extend(history_messages)
         messages.append(HumanMessage(content=question))
 
-        # 6. LLM 串流生成 + 輸出過濾
+        # 6. LLM 串流生成 + 輸出過濾（含 <think> 推理段落過濾）
         full_response = ""
+        think_filter = _ThinkFilter()
         async for chunk in self._llm.astream(messages):
             token = chunk.content
             full_response += token
-            safe_token = self._output_sanitizer.sanitize_output(token)
+            visible = think_filter.feed(token)
+            if visible:
+                safe_token = self._output_sanitizer.sanitize_output(visible)
+                yield safe_token
+        # flush any remaining buffer after stream ends
+        remaining = think_filter.flush()
+        if remaining:
+            safe_token = self._output_sanitizer.sanitize_output(remaining)
             yield safe_token
 
         # 7. 儲存對話記憶
