@@ -126,9 +126,14 @@ class EmbeddingService:
             ]
             self._collection.insert(data)
             stored += len(batch)
-            logger.info(f"Embedded & stored batch {i // self.batch_size + 1}: {len(batch)} chunks")
+            batch_num = i // self.batch_size + 1
+            logger.info(f"Embedded & stored batch {batch_num}: {len(batch)} chunks")
+            # flush every 10 batches so progress survives container restarts
+            if batch_num % 10 == 0:
+                self._collection.flush()
+                logger.info(f"[Embedder] Flushed at batch {batch_num} ({stored} chunks persisted)")
 
-        # flush 確保資料落盤，查詢前必須呼叫
+        # final flush
         self._collection.flush()
         return stored
 
