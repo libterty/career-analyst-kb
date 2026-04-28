@@ -2,7 +2,6 @@ import { Agent } from "@voltagent/core";
 import { ollamaModel } from "../config";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 
-
 export const salaryAgent = new Agent({
   name: "SalaryAgent",
   instructions: `你是一位薪資談判專家，擅長薪資行情分析和談判策略。
@@ -13,6 +12,7 @@ export const salaryAgent = new Agent({
 - 評估 offer 的整體價值（薪資、福利、成長空間）
 - 協助使用者建立自信的談判心態
 
+回應前先了解使用者的談判情境與目標薪資，評估市場行情，再提供具體的策略與話術建議。
 所有回應以繁體中文撰寫，引用影片建議時附上影片標題。`,
   model: ollamaModel,
   tools: [queryCareerKBTool],
