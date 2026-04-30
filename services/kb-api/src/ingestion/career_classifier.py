@@ -31,7 +31,10 @@ TOPIC_KEYWORDS: dict[str, list[str]] = {
         "職涯", "career", "規劃", "轉職", "career change", "轉行", "方向",
         "目標設定", "goal", "roadmap", "路線圖", "五年計畫", "十年計畫",
         "換個環境", "年資", "是否應該離",
+        "跳槽", "非本科", "薪資天花板", "倦怠", "成長停滯", "轉職時機",
+        "離職", "換工作", "職涯轉換", "跨領域", "轉換跑道",
     ],
+
     "salary": [
         "薪水", "薪資", "salary", "待遇", "offer", "package", "談薪",
         "negotiate", "加薪", "調薪", "annual bonus", "股票", "RSU", "ESOP",
