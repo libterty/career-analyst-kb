@@ -59,8 +59,8 @@ class RAGPipeline:
         embedder = EmbeddingService(milvus_host=host, milvus_port=port)
 
         # dense_top_k=50：向量搜索多取 50 筆供 BM25 重排序（小型知識庫可取更多候選）
-        # final_top_k=5：最終進入 LLM 的段落數（context 長度與準確度的平衡）
-        self._search = HybridSearchEngine(retriever, dense_top_k=50, final_top_k=5)
+        # final_top_k=8：最終進入 LLM 的段落數（8 比 5 多 60% 上下文，改善稀疏主題的召回）
+        self._search = HybridSearchEngine(retriever, dense_top_k=50, final_top_k=8)
         self._embedder = embedder
         self._prompt_optimizer = PromptOptimizer()
         # temperature=0.3：較低溫度讓回答更穩定，不亂發揮

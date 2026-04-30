@@ -30,9 +30,10 @@ DATASET_PATH = EVAL_DIR / "golden_dataset.jsonl"
 RESULTS_DIR = EVAL_DIR / "results"
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "gemma3:12b")
+JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "qwen3-30b-a3b:latest")
 
 JUDGE_PROMPT = """\
+/no_think
 你是一位公正的評審，請評估以下「答案」對於「問題」的相關性與品質。
 
 問題：{question}
@@ -71,23 +72,28 @@ def call_kb_api(
         f"{base_url}/api/chat/query/sync",
         json={"question": question, "session_id": session_id, "topic": topic},
         headers={"Authorization": f"Bearer {token}"},
-        timeout=180,
+        timeout=300,
     )
     resp.raise_for_status()
     return resp.json()
 
 
 def judge_relevance(question: str, answer: str) -> int:
-    prompt = JUDGE_PROMPT.format(question=question, answer=answer[:1500])
+    import re
+    prompt = JUDGE_PROMPT.format(question=question, answer=answer[:3000])
     try:
         resp = httpx.post(
             f"{OLLAMA_BASE_URL}/api/generate",
             json={"model": JUDGE_MODEL, "prompt": prompt, "stream": False},
-            timeout=120,
+            timeout=180,
         )
         resp.raise_for_status()
         text = resp.json().get("response", "").strip()
-        score = int(text[0]) if text and text[0].isdigit() else 0
+        # strip <think>...</think> blocks (qwen3 CoT traces)
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+        # find first digit in response
+        m = re.search(r"[0-4]", text)
+        score = int(m.group()) if m else 0
         return min(max(score, 0), 4)
     except Exception:
         return -1
@@ -127,7 +133,7 @@ def run_eval(base_url: str, token: str, use_judge: bool) -> dict:
 
                 result = {
                     **entry,
-                    "answer": answer[:300],
+                    "answer": answer[:1000],
                     "latency_ms": round(latency_ms),
                     "relevance_score": relevance,
                     "keyword_hit_rate": round(kw_rate, 2),
@@ -190,6 +196,22 @@ def print_summary(results: list[dict]) -> None:
         print(f"  {topic:<22} relevance={score_str}  kw={kw:.0%}  n={len(t_results)}")
 
 
+def flush_semantic_cache() -> None:
+    """Drop the Milvus semantic_cache collection so eval runs don't cross-contaminate."""
+    try:
+        from pymilvus import connections, utility
+        milvus_host = os.environ.get("MILVUS_HOST", "localhost")
+        milvus_port = int(os.environ.get("MILVUS_PORT", "19530"))
+        connections.connect("default", host=milvus_host, port=milvus_port)
+        if utility.has_collection("semantic_cache"):
+            utility.drop_collection("semantic_cache")
+            print("Semantic cache (Milvus) cleared.")
+        else:
+            print("Semantic cache already empty.")
+    except Exception as e:
+        print(f"Warning: could not clear semantic cache: {e}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="RAG Precision Evaluation")
     parser.add_argument("--url", default="http://localhost:8000", help="KB API base URL")
@@ -203,6 +225,7 @@ def main() -> None:
         print("ERROR: --token or CAREER_API_TOKEN required", file=sys.stderr)
         sys.exit(1)
 
+    flush_semantic_cache()
     print(f"Evaluating {DATASET_PATH.name} against {args.url}")
     print(f"LLM judge: {'disabled' if args.no_judge else JUDGE_MODEL}\n")
 
