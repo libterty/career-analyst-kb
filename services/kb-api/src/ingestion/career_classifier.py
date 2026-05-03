@@ -39,25 +39,28 @@ TOPIC_KEYWORDS: dict[str, list[str]] = {
         "薪水", "薪資", "salary", "待遇", "offer", "package", "談薪",
         "negotiate", "加薪", "調薪", "annual bonus", "股票", "RSU", "ESOP",
     ],
+    "industry_insight": [
+        "產業", "industry", "趨勢", "trend", "市場", "market", "AI",
+        "科技", "tech", "外商", "MNC", "外資", "台積電", "TSMC",
+        "新創", "大企業", "優缺點",
+        "文化差異", "本土企業", "台灣職場", "工作文化", "被取代", "未來趨勢",
+        "外商文化", "跨國企業", "國際化", "產業趨勢",
+    ],
     "workplace": [
         "職場", "workplace", "同事", "主管", "上司", "老闆", "boss",
-        "team", "團隊", "文化", "culture", "外商", "新創", "startup",
-        "大公司", "大企業", "中小企業",
-    ],
-    "promotion": [
-        "升遷", "晉升", "promotion", "升職", "manager", "管理", "leadership",
-        "leader", "senior", "principal", "director", "VP",
+        "team", "團隊", "文化", "culture", "startup",
+        "大公司", "中小企業",
     ],
     "skill_development": [
         "技能", "skill", "學習", "learn", "課程", "course", "證照",
         "certification", "upskill", "reskill", "軟技能", "soft skill",
         "溝通", "communication", "簡報", "presentation",
         "英文", "外語", "語言",
+        "在職進修", "進修", "時間管理", "持續學習", "自我成長", "自我提升", "終身學習",
     ],
-    "industry_insight": [
-        "產業", "industry", "趨勢", "trend", "市場", "market", "AI",
-        "科技", "tech", "外商", "MNC", "外資", "台積電", "TSMC",
-        "新創", "大企業", "優缺點",
+    "promotion": [
+        "升遷", "晉升", "promotion", "升職", "manager", "管理", "leadership",
+        "leader", "senior", "principal", "director", "VP",
     ],
 }
 
