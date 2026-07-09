@@ -92,6 +92,8 @@ tmp/*
 # 忽略monorepo中其他服務的編譯輸出和依賴
 services/voltagent-career/dist/*
 services/voltagent-career/node_modules/*
+services/kb-web/node_modules/*
+services/kb-web/.next/*
 
 # 忽略claude相關的資料夾和檔案
 .claude/*
