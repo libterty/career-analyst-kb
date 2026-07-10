@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-07-10T14:42:41.677Z",
+  "supervisor_path": "/Users/liyuncheng/workspace/me/career-analyst-kb/services/voltagent-career/src/agents/supervisor.ts",
+  "trace_analysis_path": "/Users/liyuncheng/workspace/me/career-analyst-kb/eval/results/trace_analysis_latest.json",
+  "overall_accuracy": 0.9405,
+  "summary": "These changes add specific keywords to improve category distinctions, particularly for career planning, job search, industry insight, and skill development, while maintaining existing routing structure.",
+  "diffs": [
+    {
+      "id": "1",
+      "risk": "low_risk",
+      "target_category": "career_planning",
+      "rationale": "Add specific keywords to distinguish career planning from general career questions.",
+      "original_excerpt": "職涯規劃（轉職、升遷、技能發展、職涯方向）→ CareerPlanAgent",
+      "replacement": "職涯規劃（轉職、升遷、職涯方向、長期規劃、職務轉換）→ CareerPlanAgent"
+    },
+    {
+      "id": "2",
+      "risk": "low_risk",
+      "target_category": "job_search",
+      "rationale": "Add specific keywords to differentiate job search from resume and salary categories.",
+      "original_excerpt": "履歷相關（撰寫、格式、ATS、自傳）→ ResumeAgent",
+      "replacement": "履歷相關（撰寫、格式、ATS、自傳、投遞策略、求職過程）→ ResumeAgent"
+    },
+    {
+      "id": "3",
+      "risk": "low_risk",
+      "target_category": "job_search",
+      "rationale": "Add specific keywords to differentiate job search from salary category.",
+      "original_excerpt": "薪資相關（談判、行情、offer 評估）→ SalaryAgent",
+      "replacement": "薪資相關（談判、行情、offer 評估、求職過程、面試階段）→ SalaryAgent"
+    },
+    {
+      "id": "4",
+      "risk": "low_risk",
+      "target_category": "industry_insight",
+      "rationale": "Add specific keywords to distinguish industry insight from workplace category.",
+      "original_excerpt": "一般職場問題可直接使用 queryCareerKB 工具回答，無需路由到子 agent。",
+      "replacement": "一般職場問題（如團隊合作、職場溝通、辦公室政治）可直接使用 queryCareerKB 工具回答，無需路由到子 agent。"
+    },
+    {
+      "id": "5",
+      "risk": "low_risk",
+      "target_category": "skill_development",
+      "rationale": "Add specific keywords to differentiate skill development from career planning.",
+      "original_excerpt": "職涯規劃（轉職、升遷、技能發展、職涯方向）→ CareerPlanAgent",
+      "replacement": "職涯規劃（轉職、升遷、職涯方向）→ CareerPlanAgent; 技能發展（語言能力、專業技能、職場軟實力）→ SkillDevelopmentAgent"
+    }
+  ]
+}
