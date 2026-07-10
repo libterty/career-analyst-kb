@@ -20,7 +20,7 @@ from src.core.config import get_settings
 from src.infrastructure.persistence.database import AsyncSessionLocal
 from src.infrastructure.persistence.migrations import run_migrations
 from src.infrastructure.repositories.user_repository import SQLAlchemyUserRepository
-from .routers import admin, auth, chat, documents, ingestion, sessions, feedback, system_prompts
+from .routers import admin, auth, chat, documents, ingestion, sessions, feedback, system_prompts, knowledge_gaps
 
 REPO_ROOT = next(
     (p for p in Path(__file__).resolve().parents if (p / "services" / "kb-web").is_dir()),
@@ -99,6 +99,7 @@ app.include_router(sessions.router)        # /api/sessions/*
 app.include_router(feedback.router)        # /api/feedback/*
 app.include_router(system_prompts.router)  # /api/admin/system-prompts/*
 app.include_router(ingestion.router)       # /api/ingestion/*
+app.include_router(knowledge_gaps.router)  # /api/knowledge-gaps/*
 
 
 # ---- Health Check -------------------------------------------------- #

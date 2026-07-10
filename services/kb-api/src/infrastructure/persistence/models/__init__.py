@@ -10,9 +10,10 @@ from src.infrastructure.persistence.models.document import Document
 from src.infrastructure.persistence.models.feedback import MessageFeedback
 from src.infrastructure.persistence.models.system_prompt import SystemPrompt
 from src.infrastructure.persistence.models.semantic_cache import SemanticCacheEntry
+from src.infrastructure.persistence.models.knowledge_gap import KnowledgeGap
 
 __all__ = [
     "User", "ChatSession", "ChatMessage", "Document",
-    "MessageFeedback", "SystemPrompt", "SemanticCacheEntry",
+    "MessageFeedback", "SystemPrompt", "SemanticCacheEntry", "KnowledgeGap",
 ]
 
