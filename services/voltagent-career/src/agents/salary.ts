@@ -1,5 +1,5 @@
 import { Agent } from "@voltagent/core";
-import { ollamaModel } from "../config";
+import { specialistModel } from "../gateway/model-gateway";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 
 export const salaryAgent = new Agent({
@@ -14,6 +14,6 @@ export const salaryAgent = new Agent({
 
 回應前先了解使用者的談判情境與目標薪資，評估市場行情，再提供具體的策略與話術建議。
 所有回應以繁體中文撰寫，引用影片建議時附上影片標題。`,
-  model: ollamaModel,
+  model: specialistModel,
   tools: [queryCareerKBTool],
 });

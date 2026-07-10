@@ -1,6 +1,6 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { ollamaModel } from "../config";
+import { fastModel } from "../gateway/model-gateway";
 
 export type AgentTarget =
   | "resume"
@@ -25,7 +25,7 @@ export async function classifyRouting(
   userQuery: string,
 ): Promise<RoutingDecision> {
   const result = await generateText({
-    model: ollamaModel,
+    model: fastModel,
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore — AI SDK v6 Output.object causes TS2589 deep type recursion; runtime is correct
     output: Output.object({ schema: routingSchema }),

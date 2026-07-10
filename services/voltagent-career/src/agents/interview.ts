@@ -1,5 +1,5 @@
 import { Agent } from "@voltagent/core";
-import { ollamaModel } from "../config";
+import { specialistModel } from "../gateway/model-gateway";
 import { generateQuestionsTool } from "../tools/generate-questions";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 
@@ -15,6 +15,6 @@ export const interviewAgent = new Agent({
 
 回應前先釐清面試類型與使用者的具體困難，從知識庫找出相關策略，再提供有邏輯的準備建議。
 所有回應以繁體中文撰寫，引用影片建議時附上影片標題。`,
-  model: ollamaModel,
+  model: specialistModel,
   tools: [generateQuestionsTool, queryCareerKBTool],
 });

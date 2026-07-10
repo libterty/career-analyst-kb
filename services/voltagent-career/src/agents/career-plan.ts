@@ -1,5 +1,5 @@
 import { Agent } from "@voltagent/core";
-import { ollamaModel } from "../config";
+import { specialistModel } from "../gateway/model-gateway";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 
 export const careerPlanAgent = new Agent({
@@ -14,6 +14,6 @@ export const careerPlanAgent = new Agent({
 
 回應前先分析使用者的現況與目標差距，識別關鍵瓶頸，再規劃具體可行的行動路徑。
 所有回應以台灣用語的繁體中文撰寫，引用影片建議時附上影片標題。`,
-  model: ollamaModel,
+  model: specialistModel,
   tools: [queryCareerKBTool],
 });

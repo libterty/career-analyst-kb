@@ -1,5 +1,5 @@
 import { Agent } from "@voltagent/core";
-import { ollamaModel } from "../config";
+import { specialistModel } from "../gateway/model-gateway";
 import { analyzeResumeTool } from "../tools/analyze-resume";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 
@@ -15,6 +15,6 @@ export const resumeAgent = new Agent({
 
 回應前先評估履歷的核心問題，從知識庫找出最相關的建議，再提供具體可執行的改善方案。
 所有回應以繁體中文撰寫，引用影片建議時附上影片標題。`,
-  model: ollamaModel,
+  model: specialistModel,
   tools: [analyzeResumeTool, queryCareerKBTool],
 });

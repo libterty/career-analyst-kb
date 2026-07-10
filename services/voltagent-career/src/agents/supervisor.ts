@@ -1,5 +1,5 @@
 import { Agent } from "@voltagent/core";
-import { ollamaModel } from "../config";
+import { supervisorModel } from "../gateway/model-gateway";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 import { confidenceGate } from "../middleware/confidence-gate";
 import { answerQualityGate } from "../judges/answer-quality";
@@ -23,7 +23,7 @@ export const supervisorAgent = new Agent({
 
 回應前先拆解問題類型與核心需求，選擇最合適的路由或工具，再提供結構化的回應。
 所有回應以繁體中文撰寫，語調專業而親切。引用影片內容時附上影片標題。`,
-  model: ollamaModel,
+  model: supervisorModel,
   tools: [queryCareerKBTool],
   subAgents: [resumeAgent, interviewAgent, careerPlanAgent, salaryAgent],
   inputMiddlewares: [confidenceGate],
