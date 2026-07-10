@@ -100,3 +100,7 @@ services/kb-web/.next/*
 
 # 忽略eval result
 eval/results/*
+
+# logs (cron output, check_new_videos, etc.)
+logs/*
+!logs/.gitkeep
