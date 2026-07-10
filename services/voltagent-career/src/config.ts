@@ -27,6 +27,7 @@ export const config = {
     process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
   ),
   voltagentModel: process.env.VOLTAGENT_MODEL ?? "gemma3:12b",
+  judgeModel: process.env.JUDGE_MODEL ?? "qwen3:8b",
   port: parseInt(process.env.PORT ?? "3141", 10),
 } as const;
 
@@ -39,3 +40,4 @@ const _ollama = createOpenAI({
 });
 
 export const ollamaModel = _ollama.chat(config.voltagentModel);
+export const judgeOllamaModel = _ollama.chat(config.judgeModel);

@@ -1,6 +1,8 @@
 import { Agent } from "@voltagent/core";
 import { ollamaModel } from "../config";
 import { queryCareerKBTool } from "../tools/query-career-kb";
+import { confidenceGate } from "../middleware/confidence-gate";
+import { answerQualityGate } from "../judges/answer-quality";
 import { resumeAgent } from "./resume";
 import { interviewAgent } from "./interview";
 import { careerPlanAgent } from "./career-plan";
@@ -24,4 +26,6 @@ export const supervisorAgent = new Agent({
   model: ollamaModel,
   tools: [queryCareerKBTool],
   subAgents: [resumeAgent, interviewAgent, careerPlanAgent, salaryAgent],
+  inputMiddlewares: [confidenceGate],
+  outputMiddlewares: [answerQualityGate],
 });
