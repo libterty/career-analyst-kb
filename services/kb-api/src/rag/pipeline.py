@@ -11,6 +11,7 @@ from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from loguru import logger
 
 from ..core.llm_factory import build_llm
+from ..core.tracing import langfuse_trace_id_var, observe
 from ..ingestion.embedder import EmbeddingService
 from ..finetuning.prompt_optimizer import PromptOptimizer
 from .hybrid_search import HybridSearchEngine
@@ -82,15 +83,8 @@ class RAGPipeline:
         Yields:
             LLM 逐 token 輸出的字串片段
         """
-        # 1. 查詢強化：將俗稱別名替換為標準術語（如「老母」→「無極老母」）
-        enhanced_query = self._prompt_optimizer.enhance_query(question)
-
-        # 2. 混合搜索：先向量化查詢，再執行 Hybrid Search
-        query_embedding = self._embedder.embed_query(enhanced_query)
-        search_results = self._search.search(enhanced_query, query_embedding)
-
-        # 3. 組裝 Context：將 top-5 段落格式化為 LLM 可讀的文字
-        context = self._build_context(search_results)
+        # 1 + 2 + 3: 查詢強化 → Hybrid Search → Context 組裝（traced）
+        context, search_results = self._retrieve(question)
 
         # 4. 組裝訊息列表：System（角色+典籍段落）→ 歷史對話 → 使用者問題
         history = self._memory.load_memory_variables({}).get("history", "")
@@ -98,7 +92,6 @@ class RAGPipeline:
             SystemMessage(content=_SYSTEM_PROMPT.format(context=context)),
         ]
         if history:
-            # 將對話歷史插入，讓 LLM 理解多輪對話的脈絡
             messages.append(AIMessage(content=history))
         messages.append(HumanMessage(content=question))
 
@@ -111,8 +104,27 @@ class RAGPipeline:
 
         # 6. 儲存本輪對話記憶，供下一輪參考
         self._memory.save_context({"input": question}, {"output": full_response})
-        logger.info(f"[RAG] session={session_id} q_len={len(question)} a_len={len(full_response)}")
+        logger.info(f"[RAG] session={session_id} q_len={len(question)} a_len={len(full_response)} sources={len(search_results)}")
 
+    @observe(name="rag-retrieve")
+    def _retrieve(self, question: str) -> tuple[str, list[SearchResult]]:
+        """查詢強化 + Hybrid Search + Context 組裝（Langfuse traced）."""
+        # Link to the parent VoltAgent trace when the trace ID is propagated via header
+        parent_trace_id = langfuse_trace_id_var.get()
+        if parent_trace_id:
+            try:
+                from langfuse.decorators import langfuse_context
+                langfuse_context.update_current_trace(id=parent_trace_id)
+            except Exception:
+                pass
+
+        enhanced_query = self._prompt_optimizer.enhance_query(question)
+        query_embedding = self._embedder.embed_query(enhanced_query)
+        results = self._search.search(enhanced_query, query_embedding)
+        context = self._build_context(results)
+        return context, results
+
+    @observe(name="rag-get-sources")
     def get_sources(self, question: str) -> list[dict]:
         """取得問題的相關典籍來源（不生成回答，用於顯示引用資訊）。
 

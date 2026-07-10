@@ -56,6 +56,7 @@ dependencies = [
   # Observability
   "loguru==0.7.3",
   "prometheus-fastapi-instrumentator==7.0.0",
+  "langfuse>=4.14.0",
 
   # Dev
   "python-dotenv==1.0.1",

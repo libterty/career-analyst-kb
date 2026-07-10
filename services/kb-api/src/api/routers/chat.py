@@ -13,12 +13,13 @@ import asyncio
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
 from src.api.auth import get_current_user
 from src.api.dependencies import get_chat_service
+from src.core.tracing import langfuse_trace_id_var
 from src.application.dto.chat_dto import ChatRequestDTO, ChatResponseDTO, SourceDocumentDTO
 from src.application.services.chat_service import ChatService
 from src.core.exceptions import SecurityError
@@ -37,6 +38,7 @@ async def chat_query(
     request: ChatRequestDTO,
     current_user=Depends(get_current_user),
     chat_service: ChatServiceDep = None,
+    x_langfuse_trace_id: str | None = Header(default=None),
 ):
     """串流問答端點（Server-Sent Events）。
 
@@ -47,6 +49,8 @@ async def chat_query(
     (`: keepalive`) 維持連線，避免用戶端 timeout。
     """
     session_id = request.session_id or str(uuid.uuid4())
+    if x_langfuse_trace_id:
+        langfuse_trace_id_var.set(x_langfuse_trace_id)
 
     async def event_stream():
         queue: asyncio.Queue[tuple[str, str | None]] = asyncio.Queue()
@@ -94,9 +98,12 @@ async def chat_query_sync(
     request: ChatRequestDTO,
     current_user=Depends(get_current_user),
     chat_service: ChatServiceDep = None,
+    x_langfuse_trace_id: str | None = Header(default=None),
 ):
     """非串流問答端點（等待完整回答後一次回傳）。"""
     session_id = request.session_id or str(uuid.uuid4())
+    if x_langfuse_trace_id:
+        langfuse_trace_id_var.set(x_langfuse_trace_id)
 
     try:
         tokens: list[str] = []
