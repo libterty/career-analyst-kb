@@ -26,6 +26,8 @@ export async function classifyRouting(
 ): Promise<RoutingDecision> {
   const result = await generateText({
     model: ollamaModel,
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore — AI SDK v6 Output.object causes TS2589 deep type recursion; runtime is correct
     output: Output.object({ schema: routingSchema }),
     prompt: `你是一位職涯問題分類器。根據用戶的問題，判斷應該路由給哪個 agent，並給出信心分數（0-1）。
 

@@ -16,6 +16,8 @@ async function scoreAnswer(
 ): Promise<{ score: number; reason: string }> {
   const result = await generateText({
     model: judgeOllamaModel,
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore — AI SDK v6 Output.object causes TS2589 deep type recursion; runtime is correct
     output: Output.object({ schema: judgeSchema }),
     prompt: `你是一位職涯顧問品質評審。請根據以下標準為回答評分（1-4分）：
 
@@ -58,13 +60,15 @@ async function recordKnowledgeGap(
 export const answerQualityGate = createOutputMiddleware<string>({
   id: "answer-quality-gate",
   name: "Answer Quality Judge",
-  description: "Scores every response 1-4; retries once if score < 3; records score ≤ 2 as knowledge gap",
+  description:
+    "Scores every response 1-4; retries once if score < 3; records score ≤ 2 as knowledge gap",
   async handler(args) {
     const answer = args.output;
     if (!answer || typeof answer !== "string") return undefined;
 
     // Extract user question from context (operation context may carry it)
-    const question = (args.context as Record<string, unknown>)?.userMessage as string ?? "";
+    const question =
+      ((args.context as Record<string, unknown>)?.userMessage as string) ?? "";
 
     let judgment: { score: number; reason: string };
     try {
@@ -75,7 +79,12 @@ export const answerQualityGate = createOutputMiddleware<string>({
     }
 
     if (judgment.score <= 2 && question) {
-      void recordKnowledgeGap(question, answer, judgment.score, judgment.reason);
+      void recordKnowledgeGap(
+        question,
+        answer,
+        judgment.score,
+        judgment.reason,
+      );
     }
 
     if (judgment.score < 3 && args.retryCount < MAX_RETRIES) {

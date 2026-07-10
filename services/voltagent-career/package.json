@@ -12,6 +12,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.0",
     "@voltagent/core": "^2.7.0",
+    "@voltagent/langfuse-exporter": "^2.0.3",
     "@voltagent/server-hono": "^2.0.12",
     "dotenv": "^16.0.0",
     "zod": "^3.22.0"
