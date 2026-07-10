@@ -48,6 +48,24 @@ die() { log "ERROR: $*" >&2; exit 1; }
 
 require_cmd() { command -v "$1" &>/dev/null || die "'$1' not found in PATH"; }
 
+# Send a Slack (or generic) webhook notification if SLACK_WEBHOOK_URL is set.
+# Usage: notify "message text"
+notify() {
+  local msg="$1"
+  if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+    return 0
+  fi
+  curl -s -o /dev/null -X POST "$SLACK_WEBHOOK_URL" \
+    -H "Content-Type: application/json" \
+    -d "{\"text\": \"$msg\"}" \
+    || log "WARNING: Slack notification failed (non-fatal)"
+}
+
+# ── Load .env (optional) ─────────────────────────────────────────────────────
+# Sources SLACK_WEBHOOK_URL and other overrides if present.
+
+[[ -f "$REPO_ROOT/.env" ]] && set -a && source "$REPO_ROOT/.env" && set +a || true
+
 # ── Preflight ─────────────────────────────────────────────────────────────────
 
 mkdir -p "$LOG_DIR" "$SUBTITLE_DIR"
@@ -129,5 +147,7 @@ log "Running incremental ingest (flags: ${INGEST_FLAGS[*]}) ..."
   cd "$KB_API_DIR"
   "$PYTHON" scripts/ingest_youtube.py "${INGEST_FLAGS[@]}"
 ) && log "Ingest complete." || { log "Ingest failed — check above for errors."; exit 1; }
+
+notify ":new: career-analyst-kb: ingested *$NEW_VTT* new @hrjasmin video(s) into Milvus ($(date '+%Y-%m-%d %H:%M'))"
 
 log "=== check_new_videos done ==="
