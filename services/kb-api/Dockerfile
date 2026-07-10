@@ -22,7 +22,7 @@ RUN mkdir -p src/career_kb && touch src/career_kb/__init__.py && \
 
 # Copy source after pip so edits don't bust the expensive install layer
 COPY services/kb-api/src/ ./src/
-COPY frontend/ ./frontend/
+COPY services/kb-web/ ./services/kb-web/
 COPY services/kb-api/alembic.ini ./alembic.ini
 COPY services/kb-api/migrations/ ./migrations/
 COPY .env.example .env

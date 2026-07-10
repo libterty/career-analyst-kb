@@ -15,11 +15,11 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-# Walk up from this file to find the directory containing frontend/
-# Local: …/career-analyst-kb/services/kb-api/src/core/config.py → parents[4]
-# Docker: /app/src/core/config.py → parents[2]
+# Walk up from this file to find the directory containing services/kb-web/
+# Local: …/career-analyst-kb/services/kb-api/src/core/config.py → parents[4] (repo root)
+# Docker: /app/src/core/config.py → parents[2] (/app)
 REPO_ROOT = next(
-    (p for p in Path(__file__).resolve().parents if (p / "frontend").is_dir()),
+    (p for p in Path(__file__).resolve().parents if (p / "services" / "kb-web").is_dir()),
     Path(__file__).resolve().parents[2],
 )
 ROOT_ENV_FILE = REPO_ROOT / ".env"

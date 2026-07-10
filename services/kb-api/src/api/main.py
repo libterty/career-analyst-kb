@@ -23,7 +23,7 @@ from src.infrastructure.repositories.user_repository import SQLAlchemyUserReposi
 from .routers import admin, auth, chat, documents, ingestion, sessions, feedback, system_prompts
 
 REPO_ROOT = next(
-    (p for p in Path(__file__).resolve().parents if (p / "frontend").is_dir()),
+    (p for p in Path(__file__).resolve().parents if (p / "services" / "kb-web").is_dir()),
     Path(__file__).resolve().parents[2],
 )
 
@@ -112,7 +112,7 @@ async def health():
 
 
 # 掛載前端靜態檔案（若前端目錄存在）
-frontend_path = REPO_ROOT / "frontend"
+frontend_path = REPO_ROOT / "services" / "kb-web"
 if frontend_path.is_dir():
     # /admin 明確路由（StaticFiles 不會自動對應 admin.html）
     @app.get("/admin", include_in_schema=False)
