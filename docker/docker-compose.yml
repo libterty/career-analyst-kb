@@ -13,6 +13,9 @@ services:
       MILVUS_HOST: "milvus-standalone"
       MILVUS_PORT: "19530"
       OLLAMA_BASE_URL: "http://host.docker.internal:11434"
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,6 +106,9 @@ services:
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       VOLTAGENT_MODEL: ${VOLTAGENT_MODEL:-gemma3:12b}
       PORT: 3141
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
     depends_on:
       - app
     restart: unless-stopped
