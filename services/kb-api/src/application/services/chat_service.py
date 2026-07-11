@@ -76,6 +76,7 @@ from src.core.interfaces.query_enhancer import IQueryEnhancer
 from src.core.interfaces.repository import IChatSessionRepository
 from src.core.interfaces.search import ISearchEngine
 from src.core.interfaces.security import IInputValidator, IOutputSanitizer
+from src.core.tracing import langfuse_client, langfuse_trace_id_var
 
 # System Prompt 定義助理角色與行為約束
 _DEFAULT_SYSTEM_PROMPT = """你是一位專業的職涯教練，根據知識庫中的職涯顧問 YouTube 影片逐字稿協助使用者解決職涯問題。知識庫涵蓋履歷撰寫、面試技巧、薪資談判、職涯規劃等主題。
@@ -222,9 +223,30 @@ class ChatService:
                     yield f'[META:{{"message_id":{assistant_msg.id}}}]'
                 return
 
-        # 3. 向量化 + 混合搜索（由 ISearchEngine 負責）
+        # 3. 向量化 + 混合搜索（由 ISearchEngine 負責）— Langfuse traced
+        lf = langfuse_client()
+        parent_trace_id = langfuse_trace_id_var.get()
+        trace_ctx = None
+        if lf and parent_trace_id:
+            try:
+                from langfuse.types import TraceContext
+                trace_ctx = TraceContext(trace_id=parent_trace_id)
+            except Exception:
+                pass
+
         query_embedding = self._embed_query(enhanced_query)
-        results = self._search_engine.search(enhanced_query, query_embedding, topic=topic)
+        if lf:
+            with lf.start_as_current_observation(
+                name="rag-retrieve",
+                as_type="retriever",
+                trace_context=trace_ctx,
+                input={"question": enhanced_query},
+            ) as obs:
+                results = self._search_engine.search(enhanced_query, query_embedding, topic=topic)
+                obs.update(output={"chunk_count": len(results)})
+            lf.flush()
+        else:
+            results = self._search_engine.search(enhanced_query, query_embedding, topic=topic)
 
         # 4. 組裝 Context
         context = self._build_context(results)

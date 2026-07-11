@@ -131,6 +131,7 @@ class RAGPipeline:
             ) as obs:
                 result = _do_retrieve()
                 obs.update(output={"chunk_count": len(result[1])})
+            lf.flush()
             return result
         return _do_retrieve()
 
