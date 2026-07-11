@@ -38,53 +38,51 @@ log "Langfuse:  $LANGFUSE_BASE_URL"
 
 log "Sending test query to VoltAgent ..."
 
-RESPONSE=$(curl -s -X POST "$VOLTAGENT_URL/agents/career-lead/invoke" \
+BEFORE_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+log "Sending test query (this may take ~90 s for LLM inference) ..."
+RESPONSE=$(curl -s -X POST "$VOLTAGENT_URL/agents/CareerLeadAgent/text" \
   -H "Content-Type: application/json" \
-  -d '{"input": "如何準備技術面試？"}') \
-  || die "VoltAgent request failed"
+  -d '{"input": "面試中如何展現領導力？"}' \
+  --max-time 180) \
+  || die "VoltAgent request failed (timeout or network error)"
 
-TRACE_ID=$(echo "$RESPONSE" | jq -r '.traceId // .trace_id // empty' 2>/dev/null || true)
+SUCCESS=$(echo "$RESPONSE" | jq -r '.success // false' 2>/dev/null || echo false)
+[[ "$SUCCESS" == "true" ]] || die "VoltAgent returned success=false: $(echo "$RESPONSE" | head -c 200)"
+log "VoltAgent answered successfully"
 
-if [[ -z "$TRACE_ID" ]]; then
-  log "Response: $RESPONSE"
-  die "Could not extract traceId from VoltAgent response"
-fi
-
-log "Got traceId: $TRACE_ID"
-
-# ── Step 2: poll Langfuse for the trace (up to 15 s) ─────────────────────────
-
-log "Polling Langfuse for trace $TRACE_ID ..."
+# ── Step 2: poll Langfuse for a new trace and rag-retrieve span ───────────────
 
 LANGFUSE_AUTH=$(printf '%s:%s' "$LANGFUSE_PUBLIC_KEY" "$LANGFUSE_SECRET_KEY" | base64)
+log "Polling Langfuse for new traces since $BEFORE_TS ..."
 
 for i in $(seq 1 5); do
-  sleep 3
-  HTTP_STATUS=$(curl -s -o /tmp/lf_trace.json -w "%{http_code}" \
-    -H "Authorization: Basic $LANGFUSE_AUTH" \
-    "$LANGFUSE_BASE_URL/api/public/traces/$TRACE_ID") || true
+  sleep 5
 
-  if [[ "$HTTP_STATUS" == "200" ]]; then
-    TRACE_NAME=$(jq -r '.name // "unknown"' /tmp/lf_trace.json)
-    SPAN_COUNT=$(jq '.observations | length' /tmp/lf_trace.json 2>/dev/null || echo "?")
-    log "PASS — trace found: name='$TRACE_NAME' spans=$SPAN_COUNT"
+  # Get latest trace
+  TRACE_JSON=$(curl -s \
+    -H "Authorization: Basic $LANGFUSE_AUTH" \
+    "$LANGFUSE_BASE_URL/api/public/traces?limit=1&orderBy=timestamp.desc") || continue
+
+  TRACE_ID=$(echo "$TRACE_JSON" | jq -r '.data[0].id // empty' 2>/dev/null || true)
+  [[ -z "$TRACE_ID" ]] && continue
+
+  # Check for rag-retrieve observations
+  OBS_JSON=$(curl -s \
+    -H "Authorization: Basic $LANGFUSE_AUTH" \
+    "$LANGFUSE_BASE_URL/api/public/observations?limit=5&name=rag-retrieve") || continue
+
+  RAG_COUNT=$(echo "$OBS_JSON" | jq '[.data[] | select(.startTime > "'"$BEFORE_TS"'")] | length' 2>/dev/null || echo 0)
+
+  if [[ "$RAG_COUNT" -gt 0 ]]; then
+    RAG_TRACE=$(echo "$OBS_JSON" | jq -r '[.data[] | select(.startTime > "'"$BEFORE_TS"'")][0].traceId' 2>/dev/null)
+    log "PASS — VoltAgent trace=$TRACE_ID"
+    log "PASS — $RAG_COUNT rag-retrieve span(s) from kb-api linked to traceId=$RAG_TRACE"
     log "View: $LANGFUSE_BASE_URL/trace/$TRACE_ID"
     exit 0
   fi
 
-  log "Attempt $i/5 — HTTP $HTTP_STATUS, retrying in 3 s ..."
+  log "Attempt $i/5 — no new rag-retrieve spans yet, retrying in 5 s ..."
 done
 
-# ── Step 3: check whether kb-api sub-spans are linked ────────────────────────
-
-log "Checking for linked kb-api observations ..."
-
-KB_SPANS=$(jq '[.observations[] | select(.name | test("rag-"))] | length' /tmp/lf_trace.json 2>/dev/null || echo 0)
-
-if [[ "$KB_SPANS" -gt 0 ]]; then
-  log "PASS — $KB_SPANS kb-api rag-* span(s) linked to parent trace"
-else
-  log "WARN — trace found but no kb-api rag-* spans linked (check x-langfuse-trace-id header propagation)"
-fi
-
-die "Trace not found in Langfuse after 15 s — check keys or Langfuse connectivity"
+die "No rag-retrieve spans appeared in Langfuse after 25 s — check kb-api LANGFUSE_* env and docker-compose"
