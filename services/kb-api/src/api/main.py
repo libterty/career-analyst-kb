@@ -17,6 +17,7 @@ from slowapi.util import get_remote_address
 
 from src.api.auth import hash_password
 from src.core.config import get_settings
+from src.core.tracing import langfuse_client
 from src.infrastructure.persistence.database import AsyncSessionLocal
 from src.infrastructure.persistence.migrations import run_migrations
 from src.infrastructure.repositories.user_repository import SQLAlchemyUserRepository
@@ -58,7 +59,17 @@ async def lifespan(app: FastAPI):
                     f"✅ 初始管理員帳號已建立：{settings.admin_username}"
                 )
 
+    # Eagerly initialize Langfuse singleton so @observe decorators can flush spans.
+    # Without this call the singleton is never created and all @observe spans are no-ops.
+    lf = langfuse_client()
+    if lf:
+        logger.success("✅ Langfuse tracing initialised")
+    else:
+        logger.info("ℹ️  Langfuse not configured — tracing disabled")
+
     yield
+    if lf:
+        lf.flush()
     logger.info("🛑 Shutting down...")
 
 

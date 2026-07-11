@@ -11,7 +11,7 @@ from langchain.schema import HumanMessage, SystemMessage, AIMessage
 from loguru import logger
 
 from ..core.llm_factory import build_llm
-from ..core.tracing import langfuse_trace_id_var, observe
+from ..core.tracing import langfuse_trace_id_var, langfuse_client
 from ..ingestion.embedder import EmbeddingService
 from ..finetuning.prompt_optimizer import PromptOptimizer
 from .hybrid_search import HybridSearchEngine
@@ -106,37 +106,56 @@ class RAGPipeline:
         self._memory.save_context({"input": question}, {"output": full_response})
         logger.info(f"[RAG] session={session_id} q_len={len(question)} a_len={len(full_response)} sources={len(search_results)}")
 
-    @observe(name="rag-retrieve")
     def _retrieve(self, question: str) -> tuple[str, list[SearchResult]]:
         """查詢強化 + Hybrid Search + Context 組裝（Langfuse traced）."""
-        # Link to the parent VoltAgent trace when the trace ID is propagated via header
         parent_trace_id = langfuse_trace_id_var.get()
-        if parent_trace_id:
-            try:
-                from langfuse.decorators import langfuse_context
-                langfuse_context.update_current_trace(id=parent_trace_id)
-            except Exception:
-                pass
+        lf = langfuse_client()
+        trace_ctx = None
+        if lf and parent_trace_id:
+            from langfuse.types import TraceContext
+            trace_ctx = TraceContext(trace_id=parent_trace_id)
 
-        enhanced_query = self._prompt_optimizer.enhance_query(question)
-        query_embedding = self._embedder.embed_query(enhanced_query)
-        results = self._search.search(enhanced_query, query_embedding)
-        context = self._build_context(results)
-        return context, results
+        def _do_retrieve() -> tuple[str, list[SearchResult]]:
+            enhanced_query = self._prompt_optimizer.enhance_query(question)
+            query_embedding = self._embedder.embed_query(enhanced_query)
+            results = self._search.search(enhanced_query, query_embedding)
+            context = self._build_context(results)
+            return context, results
 
-    @observe(name="rag-get-sources")
+        if lf:
+            with lf.start_as_current_observation(
+                name="rag-retrieve",
+                as_type="retriever",
+                trace_context=trace_ctx,
+                input={"question": question},
+            ) as obs:
+                result = _do_retrieve()
+                obs.update(output={"chunk_count": len(result[1])})
+            return result
+        return _do_retrieve()
+
     def get_sources(self, question: str) -> list[dict]:
         """取得問題的相關典籍來源（不生成回答，用於顯示引用資訊）。
 
         Returns:
             每筆來源包含 source（文件）、section（章節）、score（相似度分數）
         """
-        query_embedding = self._embedder.embed_query(question)
-        results = self._search.search(question, query_embedding)
-        return [
-            {"source": r.source, "section": r.section, "score": round(r.score, 4)}
-            for r in results
-        ]
+        lf = langfuse_client()
+
+        def _do_get_sources() -> list[dict]:
+            query_embedding = self._embedder.embed_query(question)
+            results = self._search.search(question, query_embedding)
+            return [
+                {"source": r.source, "section": r.section, "score": round(r.score, 4)}
+                for r in results
+            ]
+
+        if lf:
+            with lf.start_as_current_observation(name="rag-get-sources", as_type="retriever", input={"question": question}) as obs:
+                result = _do_get_sources()
+                obs.update(output={"source_count": len(result)})
+            return result
+        return _do_get_sources()
 
     # ------------------------------------------------------------------
 
