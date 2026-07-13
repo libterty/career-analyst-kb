@@ -7,11 +7,8 @@
 ~~**Hardcoded default secret key in production config** — FIXED 2026-07-13~~
 ~~`lifespan` now raises RuntimeError if SECRET_KEY is still the placeholder and app_env != "development". Also logs a warning if ADMIN_PASSWORD is not set. (`src/api/main.py`)~~
 
-**Hardcoded PostgreSQL credentials in default database URL:**
-- Issue: Default `database_url` embeds `career:secret` as username/password.
-- Files: `services/kb-api/src/core/config.py:75`
-- Impact: Developers running without `.env` connect to a DB with well-known credentials; easy to forget to rotate.
-- Fix approach: Remove the default entirely so startup fails fast if `DATABASE_URL` is not set.
+~~**Hardcoded PostgreSQL credentials in default database URL** — FIXED 2026-07-13~~
+~~`database_url` no longer has a default value; pydantic-settings raises `ValidationError` at startup if `DATABASE_URL` env var is not set. (`src/core/config.py`)~~
 
 ~~**In-memory session memory dict grows unbounded** — FIXED 2026-07-13~~
 ~~`_memories` is now an `OrderedDict` with LRU eviction at 10 000 sessions (`chat_service.py`).~~
@@ -49,40 +46,30 @@
 ~~**No per-endpoint rate limiting on the chat streaming endpoint** — FIXED 2026-07-13~~
 ~~`src/api/limiter.py` extracts the shared `slowapi.Limiter` instance. `/api/chat/query` (streaming) now limits to 20 req/min/IP; `/api/chat/query/sync` to 10 req/min/IP. `main.py` imports from `limiter.py` to avoid circular deps.~~
 
-**No startup warning when `ADMIN_PASSWORD` is unset:**
-- Issue: If `ADMIN_PASSWORD` env var is not set, no admin account is created and there is no warning.
-- Files: `services/kb-api/src/core/config.py:101`
-- Impact: Fresh deployments have no admin access unless the operator knows to set this env var.
-- Fix approach: Log a `logger.warning` at startup if `admin_password` is None.
+~~**No startup warning when `ADMIN_PASSWORD` is unset** — FIXED 2026-07-13~~
+~~`lifespan` logs `logger.warning` if `settings.admin_password` is None. (`src/api/main.py:56-57`)~~
 
 ## Security Concerns
 
-**JWT secret key has a trivially guessable default (see Critical Issues).**
+~~**JWT secret key has a trivially guessable default** — FIXED 2026-07-13~~
+~~`lifespan` raises `RuntimeError` if `SECRET_KEY` is still the placeholder and `app_env != "development"`. (`src/api/main.py`)~~
 
-**Long access token expiry with no revocation mechanism:**
-- Risk: Default access token lifetime is 480 minutes (8 hours). There is no refresh-token mechanism and no server-side token revocation list.
-- Files: `services/kb-api/src/core/config.py:88`
-- Recommendations: Implement short-lived access tokens (15-60 min) plus refresh tokens, or add a server-side revocation mechanism.
+~~**Long access token expiry with no revocation mechanism** — FIXED 2026-07-13~~
+~~Access token shortened to 60 min. New `refresh_tokens` table stores SHA-256(token); each token is revoked on use (rotation). `POST /api/auth/refresh` issues a new token pair; `POST /api/auth/logout` revokes all active refresh tokens. (`src/api/auth.py`, `src/api/routers/auth.py`, migration `20260713_1000`)~~
 
-**`cors_origins` defaults to `http://localhost:3000` with no production enforcement check:**
-- Issue: If `app_env=production` and the operator forgets to set `CORS_ORIGINS`, the API silently allows only localhost origins, breaking the frontend with no diagnostic message.
-- Files: `services/kb-api/src/core/config.py:99`
-- Fix approach: Log a warning when `app_env=production` and `cors_origins` still matches the development default.
+~~**`cors_origins` defaults to `http://localhost:3000` with no production enforcement check** — FIXED 2026-07-13~~
+~~`lifespan` logs a warning when `app_env=production` and any `cors_origins` entry contains "localhost". (`src/api/main.py`)~~
 
 ## Observability Gaps
 
 ~~**No structured request tracing (correlation IDs)** — FIXED 2026-07-13~~
 ~~`src/api/middleware.py` adds `CorrelationIdMiddleware`: stamps every request with an 8-char UUID stored in `request_id_var` (contextvars), returned as `X-Request-ID` response header. Registered in `main.py` before CORS middleware.~~
 
-**No health check for Milvus or Ollama connectivity:**
-- Issue: The health endpoint (if present) likely only checks PostgreSQL. Milvus and Ollama failures would only surface as 500 errors on the first chat request.
-- Impact: Load balancers or Kubernetes readiness probes cannot detect degraded state.
-- Fix approach: Add `pymilvus.utility.has_collection()` and Ollama `/api/tags` probes to a `/health/ready` endpoint.
+~~**No health check for Milvus or Ollama connectivity** — FIXED 2026-07-13~~
+~~`GET /health/ready` probes Milvus (`has_collection`) and Ollama (`/api/tags`) with a 3-second timeout each. Returns 200 `{status: "ready"}` when both are up, 503 with per-service error details otherwise. (`src/api/main.py`)~~
 
-**Milvus flush failures emit a log but have no metric or alert:**
-- Issue: The auto-flush added in commit `cee02a2` logs warnings on failure but there is no metric counter or alerting hook.
-- Files: `services/kb-api/src/ingestion/embedder.py`
-- Impact: Silent data loss on restart if repeated flush errors accumulate unnoticed.
+~~**Milvus flush failures emit a log but have no metric or alert** — FIXED 2026-07-13~~
+~~`embedder.py` now wraps all `flush()` calls in `_flush()` helper: on failure logs a warning and increments the `milvus_flush_errors_total` Prometheus counter exposed at `/metrics`. (`src/ingestion/embedder.py`)~~
 
 ---
 

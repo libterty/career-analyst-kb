@@ -9,6 +9,7 @@ import os
 from typing import Optional
 
 from loguru import logger
+from prometheus_client import Counter
 from pymilvus import (
     Collection,
     CollectionSchema,
@@ -23,6 +24,11 @@ from .chunker import Chunk
 
 # Milvus Collection 名稱，可透過環境變數覆寫
 COLLECTION_NAME = os.getenv("MILVUS_COLLECTION", "career_kb")
+
+_milvus_flush_errors = Counter(
+    "milvus_flush_errors_total",
+    "Number of Milvus flush failures during ingestion",
+)
 
 
 def _build_schema(embedding_dim: int) -> CollectionSchema:
@@ -130,16 +136,23 @@ class EmbeddingService:
             logger.info(f"Embedded & stored batch {batch_num}: {len(batch)} chunks")
             # flush every 10 batches so progress survives container restarts
             if batch_num % 10 == 0:
-                self._collection.flush()
-                logger.info(f"[Embedder] Flushed at batch {batch_num} ({stored} chunks persisted)")
+                self._flush(label=f"batch {batch_num}")
 
-        # final flush
-        self._collection.flush()
+        self._flush(label="final")
         return stored
 
     def embed_query(self, text: str) -> list[float]:
         """將查詢文字轉換為向量（用於查詢時，與 embed_documents 略有不同）。"""
         return self._embedder.embed_query(text)
+
+    def _flush(self, label: str) -> None:
+        """呼叫 Milvus flush，失敗時 log warning + 遞增 Prometheus counter。"""
+        try:
+            self._collection.flush()
+            logger.info(f"[Embedder] Flushed ({label})")
+        except Exception as exc:
+            _milvus_flush_errors.inc()
+            logger.warning(f"[Embedder] Milvus flush failed ({label}): {exc}")
 
     # ------------------------------------------------------------------
 
