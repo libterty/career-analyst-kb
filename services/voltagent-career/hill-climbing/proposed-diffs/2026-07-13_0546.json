@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-07-13T05:46:40.363Z",
+  "supervisor_path": "/Users/liyuncheng/workspace/me/career-analyst-kb/services/voltagent-career/src/agents/supervisor.ts",
+  "trace_analysis_path": "/Users/liyuncheng/workspace/me/career-analyst-kb/eval/results/trace_analysis_latest.json",
+  "overall_accuracy": 0.9495,
+  "summary": "These edits add specific keywords to each category to reduce ambiguity and improve routing accuracy. The changes are minimal and focused on clarifying existing routes without altering the overall structure.",
+  "diffs": [
+    {
+      "id": "c1",
+      "risk": "low_risk",
+      "target_category": "career_planning",
+      "rationale": "Add explicit keywords to differentiate career planning from general career questions.",
+      "original_excerpt": "職涯規劃（轉職、升遷、職涯方向、長期規劃、職務轉換）→ CareerPlanAgent",
+      "replacement": "職涯規劃（轉職、升遷、職涯方向、長期規劃、職務轉換、職涯諮商、職涯探索、轉職策略）→ CareerPlanAgent"
+    },
+    {
+      "id": "c2",
+      "risk": "low_risk",
+      "target_category": "job_search",
+      "rationale": "Add specific keywords related to job search to avoid confusion with salary negotiation.",
+      "original_excerpt": "求職過程、面試階段）→ SalaryAgent",
+      "replacement": "求職過程、面試階段、履歷投遞、職場搜尋、求職策略）→ SalaryAgent"
+    },
+    {
+      "id": "c3",
+      "risk": "low_risk",
+      "target_category": "industry_insight",
+      "rationale": "Add explicit terms for industry insights to distinguish from general workplace questions.",
+      "original_excerpt": "一般職場問題（如團隊合作、職場溝通、辦公室政治）同樣直接使用 queryCareerKB 工具回答，無需路由到子 agent。",
+      "replacement": "產業洞察（如新創公司、大企業、產業趨勢、職業生態）與一般職場問題（如團隊合作、職場溝通、辦公室政治）同樣直接使用 queryCareerKB 工具回答，無需路由到子 agent。"
+    },
+    {
+      "id": "c4",
+      "risk": "low_risk",
+      "target_category": "skill_development",
+      "rationale": "Clarify the distinction between skill development and career planning by adding specific keywords.",
+      "original_excerpt": "技能發展（語言能力、專業技能、學習資源、職場軟實力）可直接使用 queryCareerKB 工具回答，無需路由到子 agent。",
+      "replacement": "技能發展（語言能力、專業技能、學習資源、職場軟實力、證照考取、課程推薦、技能鑑定）可直接使用 queryCareerKB 工具回答，無需路由到子 agent。"
+    },
+    {
+      "id": "c5",
+      "risk": "low_risk",
+      "target_category": "resume",
+      "rationale": "Add specific resume-related keywords to avoid confusion with job search.",
+      "original_excerpt": "履歷相關（撰寫、格式、ATS、自傳、投遞策略、求職過程）→ ResumeAgent",
+      "replacement": "履歷相關（撰寫、格式、ATS、自傳、投遞策略、求職過程、履歷優化、簡歷調整）→ ResumeAgent"
+    }
+  ]
+}
