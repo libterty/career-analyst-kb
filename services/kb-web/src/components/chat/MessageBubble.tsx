@@ -17,7 +17,9 @@ export default function MessageBubble({ message, onRatingChange }: Props) {
       import("marked").then(({ marked }) => {
         marked.use({ breaks: true });
         if (contentRef.current)
-          contentRef.current.innerHTML = marked.parse(message.content) as string;
+          contentRef.current.innerHTML = marked.parse(
+            message.content,
+          ) as string;
       });
     }
   }, [message.content, message.role]);
@@ -34,17 +36,17 @@ export default function MessageBubble({ message, onRatingChange }: Props) {
 
   if (message.role === "user") {
     return (
-      <div className="msg-bubble msg-user shadow-sm self-end max-w-[80%] px-4 py-3 rounded-2xl bg-blue-100 whitespace-pre-wrap text-sm">
+      <div className="msg-bubble msg-user self-end max-w-[80%] px-4 py-3 rounded-2xl bg-blue-600 text-white whitespace-pre-wrap text-sm leading-relaxed shadow-sm">
         {message.content}
       </div>
     );
   }
 
   return (
-    <div className="msg-bubble msg-bot shadow-sm self-start max-w-[80%] px-4 py-3 rounded-2xl bg-gray-100">
+    <div className="msg-bubble msg-bot self-start max-w-[80%] px-4 py-3 rounded-2xl bg-white border border-gray-200 shadow-sm">
       <div
         ref={contentRef}
-        className="text-sm prose prose-sm max-w-none"
+        className="text-sm text-gray-900 leading-relaxed prose prose-sm prose-gray max-w-none prose-p:my-1 prose-headings:text-gray-900 prose-li:text-gray-900"
       />
       {message.sources && message.sources.length > 0 && (
         <SourcesPanel sources={message.sources} />
