@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from collections import OrderedDict
@@ -180,139 +181,143 @@ class ChatService:
             _db = self._db_session_factory()
             session_repo = SQLAlchemyChatSessionRepository(_db)
 
-        # 0. 若有 session_repo，檢查訊息上限並確保 session 存在
-        if session_repo is not None and user_id is not None:
-            # 確保 Session 存在（第一次問答時自動建立）
-            existing = await session_repo.find_by_session_id(session_id)
-            if not existing:
-                title = question[:50] if question else None
-                await session_repo.create_session(session_id, user_id, title)
+        try:
+            # 0. 若有 session_repo，檢查訊息上限並確保 session 存在
+            if session_repo is not None and user_id is not None:
+                # 確保 Session 存在（第一次問答時自動建立）
+                existing = await session_repo.find_by_session_id(session_id)
+                if not existing:
+                    title = question[:50] if question else None
+                    await session_repo.create_session(session_id, user_id, title)
 
-            # 檢查訊息上限
-            count = await session_repo.get_message_count(session_id)
-            if count >= self._max_messages:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="已達訊息上限，請開新對話",
-                )
-            
-            # 立即持久化使用者訊息（讓切換 Session 或重整時能即時看到問題）
-            await session_repo.add_message(session_id, "user", question)
-            await session_repo.increment_message_count(session_id)
+                # 檢查訊息上限
+                count = await session_repo.get_message_count(session_id)
+                if count >= self._max_messages:
+                    raise HTTPException(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        detail="已達訊息上限，請開新對話",
+                    )
 
-        # 1. 安全檢查與輸入清洗（由 IInputValidator 負責）
-        clean_input = self._input_validator.check_input(question)
+                # 立即持久化使用者訊息（讓切換 Session 或重整時能即時看到問題）
+                await session_repo.add_message(session_id, "user", question)
+                await session_repo.increment_message_count(session_id)
 
-        # 2. 查詢強化：術語正規化（由 IQueryEnhancer 負責）
-        enhanced_query = self._query_enhancer.enhance_query(clean_input)
+            # 1. 安全檢查與輸入清洗（由 IInputValidator 負責）
+            clean_input = self._input_validator.check_input(question)
 
-        # 2.5 語意快取查詢（有命中則直接串流回傳，跳過搜索與 LLM）
-        if self._semantic_cache is not None:
-            cached = await self._semantic_cache.lookup(enhanced_query)
-            if cached is not None:
-                cached_answer, _ = cached
-                logger.debug(f"[ChatService] Semantic cache HIT for session={session_id}")
-                memory = self._get_memory(session_id)
-                # 逐 chunk 串流回傳快取結果（維持 SSE 相容性）
-                chunk_size = 20
-                full_response = cached_answer
-                for i in range(0, len(cached_answer), chunk_size):
-                    yield cached_answer[i : i + chunk_size]
-                memory.save_context({"input": question}, {"output": full_response})
-                if session_repo is not None and user_id is not None:
-                    assistant_msg = await session_repo.add_message(session_id, "assistant", full_response)
-                    await session_repo.increment_message_count(session_id)
-                    yield f'[META:{{"message_id":{assistant_msg.id}}}]'
-                return
+            # 2. 查詢強化：術語正規化（由 IQueryEnhancer 負責）
+            enhanced_query = self._query_enhancer.enhance_query(clean_input)
 
-        # 3. 向量化 + 混合搜索（由 ISearchEngine 負責）— Langfuse traced
-        lf = langfuse_client()
-        parent_trace_id = langfuse_trace_id_var.get()
-        trace_ctx = None
-        if lf and parent_trace_id:
-            try:
-                from langfuse.types import TraceContext
-                trace_ctx = TraceContext(trace_id=parent_trace_id)
-            except Exception:
-                pass
+            # 2.5 語意快取查詢（有命中則直接串流回傳，跳過搜索與 LLM）
+            if self._semantic_cache is not None:
+                cached = await self._semantic_cache.lookup(enhanced_query)
+                if cached is not None:
+                    cached_answer, _ = cached
+                    logger.debug(f"[ChatService] Semantic cache HIT for session={session_id}")
+                    memory = self._get_memory(session_id)
+                    # 逐 chunk 串流回傳快取結果（維持 SSE 相容性）
+                    chunk_size = 20
+                    full_response = cached_answer
+                    for i in range(0, len(cached_answer), chunk_size):
+                        yield cached_answer[i : i + chunk_size]
+                    memory.save_context({"input": question}, {"output": full_response})
+                    if session_repo is not None and user_id is not None:
+                        assistant_msg = await session_repo.add_message(session_id, "assistant", full_response)
+                        await session_repo.increment_message_count(session_id)
+                        yield f'[META:{{"message_id":{assistant_msg.id}}}]'
+                    return
 
-        query_embedding = self._embed_query(enhanced_query)
-        if lf:
-            with lf.start_as_current_observation(
-                name="rag-retrieve",
-                as_type="retriever",
-                trace_context=trace_ctx,
-                input={"question": enhanced_query},
-            ) as obs:
+            # 3. 向量化 + 混合搜索（由 ISearchEngine 負責）— Langfuse traced
+            lf = langfuse_client()
+            parent_trace_id = langfuse_trace_id_var.get()
+            trace_ctx = None
+            if lf and parent_trace_id:
+                try:
+                    from langfuse.types import TraceContext
+                    trace_ctx = TraceContext(trace_id=parent_trace_id)
+                except Exception:
+                    pass
+
+            query_embedding = await asyncio.get_running_loop().run_in_executor(
+                None, self._embed_query, enhanced_query
+            )
+            if lf:
+                with lf.start_as_current_observation(
+                    name="rag-retrieve",
+                    as_type="retriever",
+                    trace_context=trace_ctx,
+                    input={"question": enhanced_query},
+                ) as obs:
+                    results = self._search_engine.search(enhanced_query, query_embedding, topic=topic)
+                    obs.update(output={"chunk_count": len(results)})
+                lf.flush()
+            else:
                 results = self._search_engine.search(enhanced_query, query_embedding, topic=topic)
-                obs.update(output={"chunk_count": len(results)})
-            lf.flush()
-        else:
-            results = self._search_engine.search(enhanced_query, query_embedding, topic=topic)
 
-        # 4. 組裝 Context
-        context = self._build_context(results)
+            # 4. 組裝 Context
+            context = self._build_context(results)
 
-        # 5. 組裝訊息列表（含對話歷史）
-        memory = self._get_memory(session_id)
-        history_messages = memory.load_memory_variables({}).get("history", [])
-        system_prompt = await self._get_system_prompt()
-        messages = [SystemMessage(content=system_prompt.format(context=context))]
-        if isinstance(history_messages, list):
-            messages.extend(history_messages)
-        messages.append(HumanMessage(content=question))
+            # 5. 組裝訊息列表（含對話歷史）
+            memory = self._get_memory(session_id)
+            history_messages = memory.load_memory_variables({}).get("history", [])
+            system_prompt = await self._get_system_prompt()
+            messages = [SystemMessage(content=system_prompt.format(context=context))]
+            if isinstance(history_messages, list):
+                messages.extend(history_messages)
+            messages.append(HumanMessage(content=question))
 
-        # 6. LLM 串流生成 + 輸出過濾（含 <think> 推理段落過濾）
-        full_response = ""
-        think_filter = _ThinkFilter()
-        async for chunk in self._llm.astream(messages):
-            token = chunk.content
-            full_response += token
-            visible = think_filter.feed(token)
-            if visible:
-                safe_token = self._output_sanitizer.sanitize_output(visible)
+            # 6. LLM 串流生成 + 輸出過濾（含 <think> 推理段落過濾）
+            full_response = ""
+            think_filter = _ThinkFilter()
+            async for chunk in self._llm.astream(messages):
+                token = chunk.content
+                full_response += token
+                visible = think_filter.feed(token)
+                if visible:
+                    safe_token = self._output_sanitizer.sanitize_output(visible)
+                    yield safe_token
+            # flush any remaining buffer after stream ends
+            remaining = think_filter.flush()
+            if remaining:
+                safe_token = self._output_sanitizer.sanitize_output(remaining)
                 yield safe_token
-        # flush any remaining buffer after stream ends
-        remaining = think_filter.flush()
-        if remaining:
-            safe_token = self._output_sanitizer.sanitize_output(remaining)
-            yield safe_token
 
-        # 7. 儲存對話記憶
-        memory.save_context({"input": question}, {"output": full_response})
+            # 7. 儲存對話記憶
+            memory.save_context({"input": question}, {"output": full_response})
 
-        # 7.4 傳送來源資訊（YouTube 影片引用）
-        sources_data = [
-            {"title": r.video_title, "url": r.url, "topic": r.section, "score": round(r.score, 3)}
-            for r in results
-            if r.url
-        ]
-        if sources_data:
-            yield f'[SOURCES:{json.dumps(sources_data, ensure_ascii=False)}]'
-
-        # 7.5 將結果存入語意快取（不阻塞串流）
-        if self._semantic_cache is not None:
-            sources = [
-                {"source": r.source, "section": r.section, "score": round(r.score, 4)}
+            # 7.4 傳送來源資訊（YouTube 影片引用）
+            sources_data = [
+                {"title": r.video_title, "url": r.url, "topic": r.section, "score": round(r.score, 3)}
                 for r in results
+                if r.url
             ]
-            try:
-                await self._semantic_cache.store(enhanced_query, full_response, sources)
-            except Exception as exc:
-                logger.warning(f"[ChatService] Failed to store semantic cache: {exc}")
+            if sources_data:
+                yield f'[SOURCES:{json.dumps(sources_data, ensure_ascii=False)}]'
 
-        # 8. 持久化助理回覆至資料庫（user 訊息已在 step 0 儲存）
-        if session_repo is not None and user_id is not None:
-            assistant_msg = await session_repo.add_message(session_id, "assistant", full_response)
-            await session_repo.increment_message_count(session_id)
-            yield f'[META:{{"message_id":{assistant_msg.id}}}]'
-            if self._db_session_factory is not None and self._session_repo is None:
+            # 7.5 將結果存入語意快取（不阻塞串流）
+            if self._semantic_cache is not None:
+                sources = [
+                    {"source": r.source, "section": r.section, "score": round(r.score, 4)}
+                    for r in results
+                ]
+                try:
+                    await self._semantic_cache.store(enhanced_query, full_response, sources)
+                except Exception as exc:
+                    logger.warning(f"[ChatService] Failed to store semantic cache: {exc}")
+
+            # 8. 持久化助理回覆至資料庫（user 訊息已在 step 0 儲存）
+            if session_repo is not None and user_id is not None:
+                assistant_msg = await session_repo.add_message(session_id, "assistant", full_response)
+                await session_repo.increment_message_count(session_id)
+                yield f'[META:{{"message_id":{assistant_msg.id}}}]'
+
+            logger.info(
+                f"[ChatService] session={session_id} "
+                f"q_len={len(question)} a_len={len(full_response)}"
+            )
+        finally:
+            if _db is not None:
                 await _db.close()
-
-        logger.info(
-            f"[ChatService] session={session_id} "
-            f"q_len={len(question)} a_len={len(full_response)}"
-        )
 
     def set_semantic_cache(self, cache: Any) -> None:
         """注入語意快取服務（啟動後可動態設定）。"""

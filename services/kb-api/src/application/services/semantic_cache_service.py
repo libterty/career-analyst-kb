@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -61,7 +62,9 @@ class SemanticCacheService:
         Returns:
             (answer, sources) 若快取命中；None 若快取未命中
         """
-        query_embedding = self._embed_query(query_text)
+        query_embedding = await asyncio.get_running_loop().run_in_executor(
+            None, self._embed_query, query_text
+        )
         results = self._collection.search(
             data=[query_embedding],
             anns_field="embedding",
@@ -88,7 +91,9 @@ class SemanticCacheService:
     ) -> None:
         """將問答結果存入語意快取。"""
         cache_key = str(uuid.uuid4()).replace("-", "")[:32]
-        query_embedding = self._embed_query(query_text)
+        query_embedding = await asyncio.get_running_loop().run_in_executor(
+            None, self._embed_query, query_text
+        )
         expires_at = datetime.now(timezone.utc) + timedelta(hours=self._ttl_hours)
 
         # 寫入 Milvus（向量 + cache_key）
