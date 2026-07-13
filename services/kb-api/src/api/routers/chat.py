@@ -13,12 +13,13 @@ import asyncio
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
 from src.api.auth import get_current_user
 from src.api.dependencies import get_chat_service
+from src.api.limiter import limiter
 from src.core.tracing import langfuse_trace_id_var
 from src.application.dto.chat_dto import ChatRequestDTO, ChatResponseDTO, SourceDocumentDTO
 from src.application.services.chat_service import ChatService
@@ -34,8 +35,10 @@ _KEEPALIVE_INTERVAL = 15
 
 
 @router.post("/query")
+@limiter.limit("20/minute")
 async def chat_query(
-    request: ChatRequestDTO,
+    request: Request,
+    body: ChatRequestDTO,
     current_user=Depends(get_current_user),
     chat_service: ChatServiceDep = None,
     x_langfuse_trace_id: str | None = Header(default=None),
@@ -48,7 +51,7 @@ async def chat_query(
     在等待 LLM 產生第一個 token 期間，每 15 秒發送一個 SSE comment
     (`: keepalive`) 維持連線，避免用戶端 timeout。
     """
-    session_id = request.session_id or str(uuid.uuid4())
+    session_id = body.session_id or str(uuid.uuid4())
     if x_langfuse_trace_id:
         langfuse_trace_id_var.set(x_langfuse_trace_id)
 
@@ -58,7 +61,7 @@ async def chat_query(
         async def _run() -> None:
             try:
                 async for token in chat_service.stream_answer(
-                    request.question, session_id, user_id=current_user.id, topic=request.topic
+                    body.question, session_id, user_id=current_user.id, topic=body.topic
                 ):
                     await queue.put(("data", token))
                 await queue.put(("done", None))
@@ -94,28 +97,30 @@ async def chat_query(
 
 
 @router.post("/query/sync", response_model=ChatResponseDTO)
+@limiter.limit("10/minute")
 async def chat_query_sync(
-    request: ChatRequestDTO,
+    request: Request,
+    body: ChatRequestDTO,
     current_user=Depends(get_current_user),
     chat_service: ChatServiceDep = None,
     x_langfuse_trace_id: str | None = Header(default=None),
 ):
     """非串流問答端點（等待完整回答後一次回傳）。"""
-    session_id = request.session_id or str(uuid.uuid4())
+    session_id = body.session_id or str(uuid.uuid4())
     if x_langfuse_trace_id:
         langfuse_trace_id_var.set(x_langfuse_trace_id)
 
     try:
         tokens: list[str] = []
         async for token in chat_service.stream_answer(
-            request.question, session_id, user_id=current_user.id, topic=request.topic
+            body.question, session_id, user_id=current_user.id, topic=body.topic
         ):
             tokens.append(token)
     except SecurityError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     answer = "".join(tokens)
-    sources = chat_service.get_sources(request.question, topic=request.topic)
+    sources = chat_service.get_sources(body.question, topic=body.topic)
 
     return ChatResponseDTO(
         answer=answer,

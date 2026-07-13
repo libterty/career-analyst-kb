@@ -46,11 +46,8 @@
 ~~**No unit tests for ChatService, RAG pipeline, or HybridSearchEngine** — FIXED 2026-07-13~~
 ~~Added `test_hybrid_search.py` (16 tests: tokenize, RRF fusion, BM25 path, fallback, invalidation) and `test_rag_pipeline.py` (11 tests: _build_context, _retrieve routing, Langfuse span). Combined with existing `test_chat_service.py`, core RAG logic now has 58 unit tests.~~
 
-**No per-endpoint rate limiting on the chat streaming endpoint:**
-- Issue: The message count cap (`max_messages_per_session`) limits total messages but there is no per-minute or per-IP rate limit on the chat streaming route. A single client can flood LLM inference requests.
-- Files: `services/kb-api/src/api/routers/` (no rate limit middleware observed)
-- Impact: Denial-of-service on the Ollama/Grok backend; unexpected cost spikes for paid providers.
-- Fix approach: Add `slowapi` or a Redis-backed rate limiter as FastAPI middleware.
+~~**No per-endpoint rate limiting on the chat streaming endpoint** — FIXED 2026-07-13~~
+~~`src/api/limiter.py` extracts the shared `slowapi.Limiter` instance. `/api/chat/query` (streaming) now limits to 20 req/min/IP; `/api/chat/query/sync` to 10 req/min/IP. `main.py` imports from `limiter.py` to avoid circular deps.~~
 
 **No startup warning when `ADMIN_PASSWORD` is unset:**
 - Issue: If `ADMIN_PASSWORD` env var is not set, no admin account is created and there is no warning.
@@ -74,10 +71,8 @@
 
 ## Observability Gaps
 
-**No structured request tracing (correlation IDs):**
-- Issue: Logs include `session_id` but no request-level trace ID is propagated across the RAG pipeline, security checks, and DB calls.
-- Impact: Difficult to correlate logs from a single request across modules in production.
-- Fix approach: Inject a `request_id` (UUID) at the router level via middleware and thread it through all service log statements.
+~~**No structured request tracing (correlation IDs)** — FIXED 2026-07-13~~
+~~`src/api/middleware.py` adds `CorrelationIdMiddleware`: stamps every request with an 8-char UUID stored in `request_id_var` (contextvars), returned as `X-Request-ID` response header. Registered in `main.py` before CORS middleware.~~
 
 **No health check for Milvus or Ollama connectivity:**
 - Issue: The health endpoint (if present) likely only checks PostgreSQL. Milvus and Ollama failures would only surface as 500 errors on the first chat request.

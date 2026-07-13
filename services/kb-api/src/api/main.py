@@ -9,21 +9,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 from prometheus_fastapi_instrumentator import Instrumentator
-from slowapi import Limiter, _rate_limit_exceeded_handler
+
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from src.api.auth import hash_password
+from src.api.limiter import limiter
+from src.api.middleware import CorrelationIdMiddleware
 from src.core.config import get_settings
 from src.core.tracing import langfuse_client
 from src.infrastructure.persistence.database import AsyncSessionLocal
 from src.infrastructure.persistence.migrations import run_migrations
 from src.infrastructure.repositories.user_repository import SQLAlchemyUserRepository
 from .routers import admin, auth, chat, documents, ingestion, sessions, feedback, system_prompts, knowledge_gaps, hill_climbing
-
-# ---- Rate Limiter -------------------------------------------------- #
-# 依來源 IP 進行請求頻率限制，防止濫用
-limiter = Limiter(key_func=get_remote_address)
 
 
 # ---- App Lifespan -------------------------------------------------- #
@@ -103,6 +101,9 @@ app = FastAPI(
 # 掛載速率限制器與例外處理器
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Correlation ID — must be added before CORS so the response header is always present
+app.add_middleware(CorrelationIdMiddleware)
 
 # CORS 設定：允許的前端來源（多個來源用逗號分隔）
 origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
