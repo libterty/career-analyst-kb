@@ -110,10 +110,15 @@ services:
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
     depends_on:
-      - app
+      app:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3141/agents"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     restart: unless-stopped
-    profiles:
-      - voltagent
 
   # ── kb-web (Next.js) ──────────────────────────
   kb-web:
@@ -138,6 +143,7 @@ services:
     depends_on:
       - app
       - kb-web
+      - voltagent
     restart: unless-stopped
 
 volumes:
