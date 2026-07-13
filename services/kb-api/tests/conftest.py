@@ -72,6 +72,25 @@ class _FakeSQLAlchemyChatSessionRepository:
 _chat_session_repo_mod = MagicMock()
 _chat_session_repo_mod.SQLAlchemyChatSessionRepository = _FakeSQLAlchemyChatSessionRepository
 
+# --- rank_bm25 stub (Docker-only) ---
+class _FakeBM25Okapi:
+    """Minimal BM25Okapi stub: score = corpus_size - doc_index (doc 0 scores highest)."""
+    def __init__(self, tokenized_corpus):
+        self._n = len(tokenized_corpus)
+
+    def get_scores(self, query_tokens):
+        return [float(self._n - i) for i in range(self._n)]
+
+_rank_bm25_mod = MagicMock()
+_rank_bm25_mod.BM25Okapi = _FakeBM25Okapi
+
+# --- jieba stub (Docker-only) — fallback to char-split, same as _tokenize_zh fallback ---
+_jieba_mod = MagicMock()
+_jieba_mod.cut = list  # list("abc") == ["a", "b", "c"]
+
+# --- pymilvus stub (Docker-only, needed for MilvusRetriever import) ---
+_pymilvus_mod = MagicMock()
+
 for _name, _mod in [
     ("langchain.memory", _langchain_memory),
     ("langchain.schema", _langchain_schema),
@@ -83,6 +102,9 @@ for _name, _mod in [
     ("sqlalchemy.ext.asyncio", _sqlalchemy_ext_asyncio),
     ("sqlalchemy.orm", _sqlalchemy_orm),
     ("src.infrastructure.repositories.chat_session_repository", _chat_session_repo_mod),
+    ("rank_bm25", _rank_bm25_mod),
+    ("jieba", _jieba_mod),
+    ("pymilvus", _pymilvus_mod),
 ]:
     if _name not in sys.modules:
         sys.modules[_name] = _mod

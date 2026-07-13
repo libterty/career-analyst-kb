@@ -43,11 +43,8 @@
 
 ## Missing Functionality
 
-**No unit tests for ChatService, RAG pipeline, or HybridSearchEngine:**
-- Issue: Unit tests only cover `chunker`, `content_filter`, and `injection_detector`. The most complex business logic (`chat_service.py`, `hybrid_search.py`, `rag/pipeline.py`, `semantic_cache_service.py`) has zero unit test coverage.
-- Files: `services/kb-api/tests/unit/` (3 test files only)
-- Risk: Regressions in the core RAG flow go undetected until integration/eval runs.
-- Priority: High
+~~**No unit tests for ChatService, RAG pipeline, or HybridSearchEngine** — FIXED 2026-07-13~~
+~~Added `test_hybrid_search.py` (16 tests: tokenize, RRF fusion, BM25 path, fallback, invalidation) and `test_rag_pipeline.py` (11 tests: _build_context, _retrieve routing, Langfuse span). Combined with existing `test_chat_service.py`, core RAG logic now has 58 unit tests.~~
 
 **No per-endpoint rate limiting on the chat streaming endpoint:**
 - Issue: The message count cap (`max_messages_per_session`) limits total messages but there is no per-minute or per-IP rate limit on the chat streaming route. A single client can flood LLM inference requests.
