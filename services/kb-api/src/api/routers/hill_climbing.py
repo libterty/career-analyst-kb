@@ -105,5 +105,5 @@ async def apply_diffs(body: ApplyRequest, user: AdminUserDep) -> dict:
         "applied": applied,
         "missed": missed,
         "backup": str(backup_path),
-        "note": "請執行 docker compose build voltagent && docker compose up -d voltagent 使變更生效",
+        "note": "VoltAgent（dev 模式）偵測到 supervisor.ts 變更後會自動重啟，無需手動操作。",
     }

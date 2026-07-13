@@ -101,6 +101,7 @@ services:
     build:
       context: ../services/voltagent-career
       dockerfile: Dockerfile
+      target: dev
     ports:
       - "3141:3141"
     environment:
@@ -112,6 +113,8 @@ services:
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+    volumes:
+      - ../services/voltagent-career/src:/app/src:ro
     depends_on:
       app:
         condition: service_started
