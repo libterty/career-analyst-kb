@@ -16,6 +16,7 @@ services:
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+      CAREER_API_TOKEN: ${CAREER_API_TOKEN:-voltagent-service-token-dev}
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,9 +105,9 @@ services:
       - "3141:3141"
     environment:
       KB_API_URL: http://app:8000
-      CAREER_API_TOKEN: ${CAREER_API_TOKEN}
+      CAREER_API_TOKEN: ${CAREER_API_TOKEN:-voltagent-service-token-dev}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
-      VOLTAGENT_MODEL: ${VOLTAGENT_MODEL:-gemma3:12b}
+      VOLTAGENT_MODEL: ${VOLTAGENT_MODEL:-qwen3:8b}
       PORT: 3141
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
@@ -115,7 +116,7 @@ services:
       app:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3141/agents"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3141/agents"]
       interval: 10s
       timeout: 5s
       retries: 6

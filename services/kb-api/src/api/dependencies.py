@@ -22,6 +22,7 @@ from src.application.services.chat_service import ChatService
 from src.application.services.ingestion_service import IngestionService
 from src.application.services.session_service import SessionService
 from src.core.config import AppSettings, get_settings
+from src.infrastructure.llm.anthropic_provider import AnthropicProvider
 from src.infrastructure.llm.grok_provider import GrokProvider
 from src.infrastructure.llm.ollama_provider import OllamaProvider
 from src.infrastructure.llm.openai_provider import OpenAIProvider
@@ -52,6 +53,7 @@ def get_llm_registry() -> LLMProviderRegistry:
     registry = LLMProviderRegistry()
     registry.register("ollama", OllamaProvider(settings))
     registry.register("openai", OpenAIProvider(settings))
+    registry.register("anthropic", AnthropicProvider(settings))
     if settings.grok_api_key:
         registry.register("grok", GrokProvider(settings))
     return registry

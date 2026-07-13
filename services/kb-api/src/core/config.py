@@ -55,6 +55,9 @@ class AppSettings(BaseSettings):
     openai_api_key: str | None = None
     """OpenAI API Key（llm_provider=openai 時必填）"""
 
+    anthropic_api_key: str | None = None
+    """Anthropic API Key（llm_provider=anthropic 時必填）"""
+
     # ── Embedding ─────────────────────────────────────────────────────
     embedding_provider: str | None = None
     """Embedding Provider（None 表示跟隨 llm_provider 邏輯）"""

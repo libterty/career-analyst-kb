@@ -20,6 +20,8 @@ SECRET_KEY = os.getenv("SECRET_KEY", "CHANGE_ME_IN_PRODUCTION_USE_RANDOM_32_CHAR
 ALGORITHM = "HS256"  # JWT 簽名演算法
 # Token 有效期（分鐘），預設 480 分鐘（8 小時）
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
+# 服務間呼叫的靜態 API Token（VoltAgent → kb-api，不會過期）
+CAREER_API_TOKEN = os.getenv("CAREER_API_TOKEN", "")
 
 # bcrypt 密碼雜湊器（自動處理 salt 與多輪雜湊）
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -59,8 +61,12 @@ async def get_current_user(
 ) -> User:
     """FastAPI Dependency：從請求的 Bearer Token 解析並驗證當前使用者。
 
+    接受兩種 token：
+    1. CAREER_API_TOKEN（靜態 service token）：VoltAgent 服務間呼叫，不會過期，以 admin 身份執行
+    2. JWT Bearer Token：一般使用者登入取得的 token
+
     Args:
-        token: Authorization Header 中的 JWT Token
+        token: Authorization Header 中的 Bearer Token
         db:    資料庫 Session（由 FastAPI DI 注入）
 
     Returns:
@@ -74,6 +80,15 @@ async def get_current_user(
         detail="無效的認證憑證",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # 靜態 service token（VoltAgent → kb-api 服務間呼叫）
+    if CAREER_API_TOKEN and token == CAREER_API_TOKEN:
+        result = await db.execute(select(User).where(User.role == "admin"))
+        admin = result.scalars().first()
+        if admin is None:
+            raise credentials_exception
+        return admin
+
     try:
         # 解碼 JWT，驗證簽名與過期時間
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
