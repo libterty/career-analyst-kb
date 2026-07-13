@@ -3,12 +3,9 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
-from pathlib import Path
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -22,11 +19,6 @@ from src.infrastructure.persistence.database import AsyncSessionLocal
 from src.infrastructure.persistence.migrations import run_migrations
 from src.infrastructure.repositories.user_repository import SQLAlchemyUserRepository
 from .routers import admin, auth, chat, documents, ingestion, sessions, feedback, system_prompts, knowledge_gaps
-
-REPO_ROOT = next(
-    (p for p in Path(__file__).resolve().parents if (p / "services" / "kb-web").is_dir()),
-    Path(__file__).resolve().parents[2],
-)
 
 # ---- Rate Limiter -------------------------------------------------- #
 # 依來源 IP 進行請求頻率限制，防止濫用
@@ -114,25 +106,11 @@ app.include_router(knowledge_gaps.router)  # /api/knowledge-gaps/*
 
 
 # ---- Health Check -------------------------------------------------- #
-# Must be registered before the StaticFiles("/") mount, which shadows any
-# route defined after it.
 
 @app.get("/health", tags=["System"])
 async def health():
     """健康檢查端點，供 Docker / K8s 探針使用。"""
     return {"status": "ok", "version": "1.0.0"}
-
-
-# 掛載前端靜態檔案（若前端目錄存在）
-frontend_path = REPO_ROOT / "services" / "kb-web"
-if frontend_path.is_dir():
-    # /admin 明確路由（StaticFiles 不會自動對應 admin.html）
-    @app.get("/admin", include_in_schema=False)
-    async def admin_page():
-        from fastapi.responses import FileResponse
-        return FileResponse(frontend_path / "admin.html")
-
-    app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="static")
 
 
 # ---- Global Error Handler ------------------------------------------ #
