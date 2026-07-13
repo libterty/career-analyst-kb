@@ -15,6 +15,7 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 
 from src.api.auth import get_current_user
+from src.api.dependencies import get_chat_service
 
 router = APIRouter(prefix="/api/ingestion", tags=["Ingestion"])
 
@@ -59,6 +60,11 @@ async def ingest_youtube(
                     yield f"data: {text}\n\n"
             await proc.wait()
             if proc.returncode == 0:
+                try:
+                    get_chat_service().invalidate_search_cache()
+                    logger.info("[Ingestion] BM25 cache invalidated after successful ingest")
+                except Exception as exc:
+                    logger.warning(f"[Ingestion] BM25 invalidation failed: {exc}")
                 yield "data: [DONE]\n\n"
             else:
                 yield f"data: [ERROR] process exited with code {proc.returncode}\n\n"

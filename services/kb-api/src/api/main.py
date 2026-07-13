@@ -36,6 +36,18 @@ async def lifespan(app: FastAPI):
     """
     settings = get_settings()
     logger.info("🚀 Starting Career Analyst KB...")
+
+    # Guard: reject the dev placeholder secret key in non-development environments
+    _DEV_SECRET = "CHANGE_ME_IN_PRODUCTION_USE_RANDOM_32_CHARS"
+    if settings.secret_key == _DEV_SECRET and settings.app_env != "development":
+        raise RuntimeError(
+            "SECRET_KEY is still set to the development placeholder. "
+            "Set the SECRET_KEY environment variable to a random 32+ character string before running in production."
+        )
+
+    if not settings.admin_password:
+        logger.warning("⚠️  ADMIN_PASSWORD not set — no admin account will be created on first boot")
+
     run_migrations()  # 執行 Alembic migration（自動套用所有待執行的版本）
     logger.success("✅ Database migrations applied")
 

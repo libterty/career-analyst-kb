@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections import OrderedDict
 from typing import AsyncIterator, Callable, Any
 
 
@@ -141,8 +142,9 @@ class ChatService:
         self._session_repo = session_repo
         self._max_messages = max_messages_per_session
         self._db_session_factory = db_session_factory
-        # per-session 對話記憶（key: session_id）
-        self._memories: dict[str, ConversationBufferWindowMemory] = {}
+        # per-session 對話記憶（LRU, bounded to avoid unbounded memory growth）
+        self._memories: OrderedDict[str, ConversationBufferWindowMemory] = OrderedDict()
+        self._memories_maxsize = 10_000
         # 提示詞快取 (content, cached_at)
         self._prompt_cache: tuple[str, float] | None = None
         # 語意快取服務（可選，None 表示停用）
@@ -368,13 +370,22 @@ class ChatService:
         return _DEFAULT_SYSTEM_PROMPT
 
     def _get_memory(self, session_id: str) -> ConversationBufferWindowMemory:
-        """取得或建立指定 session 的對話記憶。"""
-        if session_id not in self._memories:
+        """取得或建立指定 session 的對話記憶（LRU eviction when capacity exceeded）。"""
+        if session_id in self._memories:
+            self._memories.move_to_end(session_id)
+        else:
+            if len(self._memories) >= self._memories_maxsize:
+                self._memories.popitem(last=False)  # evict least-recently-used
             self._memories[session_id] = ConversationBufferWindowMemory(
                 k=self._memory_window,
                 return_messages=True,
             )
         return self._memories[session_id]
+
+    def invalidate_search_cache(self) -> None:
+        """BM25 corpus 快取失效（新文件匯入後呼叫）。"""
+        if hasattr(self._search_engine, "invalidate_bm25_cache"):
+            self._search_engine.invalidate_bm25_cache()
 
     @staticmethod
     def _build_context(results: list[SearchResult]) -> str:
