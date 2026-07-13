@@ -1,0 +1,16 @@
+# Production overrides — apply with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Prerequisites:
+#   export CAREER_API_TOKEN=$(openssl rand -hex 32)
+#   export VOLTAGENT_MODEL=qwen3:14b   # 8 GB; use qwen3:8b (4 GB) on memory-constrained hosts
+
+services:
+  voltagent:
+    build:
+      target: runtime          # compiled dist, no tsx watch, no devDependencies
+    volumes: []                # remove src hot-reload mount
+    environment:
+      # CAREER_API_TOKEN must be set explicitly; no dev default allowed in production
+      CAREER_API_TOKEN: ${CAREER_API_TOKEN:?CAREER_API_TOKEN must be set for production}
+      VOLTAGENT_MODEL: ${VOLTAGENT_MODEL:-qwen3:14b}
