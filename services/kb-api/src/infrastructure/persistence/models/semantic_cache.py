@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import json
 
+from loguru import logger
 from sqlalchemy import Column, Integer, String, Text
-from sqlalchemy.orm import relationship
 
 from src.infrastructure.persistence.database import Base
 from src.infrastructure.persistence.models._base import TS, now
@@ -39,5 +39,6 @@ class SemanticCacheEntry(Base):
             return []
         try:
             return json.loads(self.sources_json)
-        except Exception:
+        except Exception as exc:
+            logger.warning(f"[SemanticCache] Failed to deserialize sources_json: {exc}")
             return []

@@ -209,8 +209,12 @@ class ChatService:
             enhanced_query = self._query_enhancer.enhance_query(clean_input)
 
             # 2.5 語意快取查詢（有命中則直接串流回傳，跳過搜索與 LLM）
+            # 預先計算 embedding，供 cache lookup 與後續向量搜索共用，避免重複呼叫
+            query_embedding = await asyncio.get_running_loop().run_in_executor(
+                None, self._embed_query, enhanced_query
+            )
             if self._semantic_cache is not None:
-                cached = await self._semantic_cache.lookup(enhanced_query)
+                cached = await self._semantic_cache.lookup(enhanced_query, query_embedding)
                 if cached is not None:
                     cached_answer, _ = cached
                     logger.debug(f"[ChatService] Semantic cache HIT for session={session_id}")
@@ -227,7 +231,8 @@ class ChatService:
                         yield f'[META:{{"message_id":{assistant_msg.id}}}]'
                     return
 
-            # 3. 向量化 + 混合搜索（由 ISearchEngine 負責）— Langfuse traced
+            # 3. 混合搜索（由 ISearchEngine 負責）— Langfuse traced
+            # query_embedding 已在 step 2.5 算好，此處直接使用
             lf = langfuse_client()
             parent_trace_id = langfuse_trace_id_var.get()
             trace_ctx = None
@@ -238,9 +243,6 @@ class ChatService:
                 except Exception:
                     pass
 
-            query_embedding = await asyncio.get_running_loop().run_in_executor(
-                None, self._embed_query, enhanced_query
-            )
             if lf:
                 with lf.start_as_current_observation(
                     name="rag-retrieve",

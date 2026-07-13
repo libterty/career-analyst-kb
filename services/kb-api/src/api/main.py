@@ -1,6 +1,7 @@
 """Phase 5 — FastAPI Application Entry Point"""
 from __future__ import annotations
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -70,6 +71,17 @@ async def lifespan(app: FastAPI):
         logger.success("✅ Langfuse tracing initialised")
     else:
         logger.info("ℹ️  Langfuse not configured — tracing disabled")
+
+    # Eager-load BM25 index so the first user request isn't blocked by corpus fetch.
+    try:
+        from src.api.dependencies import get_chat_service
+        svc = get_chat_service()
+        await asyncio.get_running_loop().run_in_executor(
+            None, svc._search_engine._ensure_bm25_index
+        )
+        logger.success("✅ BM25 index pre-loaded")
+    except Exception as exc:
+        logger.warning(f"⚠️  BM25 index pre-load failed (will retry on first query): {exc}")
 
     yield
     if lf:

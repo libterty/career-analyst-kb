@@ -53,18 +53,24 @@ class SemanticCacheService:
     # Public API
     # ------------------------------------------------------------------
 
-    async def lookup(self, query_text: str) -> tuple[str, list[dict]] | None:
+    async def lookup(
+        self,
+        query_text: str,
+        query_embedding: list[float] | None = None,
+    ) -> tuple[str, list[dict]] | None:
         """查詢語意快取。
 
         Args:
-            query_text: 原始問題文字
+            query_text:      原始問題文字
+            query_embedding: 預先計算的查詢向量（若已算過可傳入以避免重複 embedding）
 
         Returns:
             (answer, sources) 若快取命中；None 若快取未命中
         """
-        query_embedding = await asyncio.get_running_loop().run_in_executor(
-            None, self._embed_query, query_text
-        )
+        if query_embedding is None:
+            query_embedding = await asyncio.get_running_loop().run_in_executor(
+                None, self._embed_query, query_text
+            )
         results = self._collection.search(
             data=[query_embedding],
             anns_field="embedding",

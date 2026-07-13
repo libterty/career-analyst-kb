@@ -5,7 +5,7 @@
 使用方式：
     from src.core.config import get_settings
     settings = get_settings()
-    print(settings.llm_provider)
+    settings.llm_provider
 """
 from __future__ import annotations
 

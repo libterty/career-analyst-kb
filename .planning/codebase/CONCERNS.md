@@ -27,30 +27,19 @@
 ~~**Dual-path session repository construction per request with potential connection leak** — FIXED 2026-07-13~~
 ~~`stream_answer` now wraps the entire generator body in `try/finally`; `_db.close()` is guaranteed to run on both happy path and exception path (`chat_service.py:184-320`).~~
 
-**Bare `except Exception: return []` silences Milvus errors:**
-- Issue: A bare `except Exception:` with no logging exists in the semantic cache model layer.
-- Files: `services/kb-api/src/infrastructure/persistence/models/semantic_cache.py:42`
-- Impact: Milvus failures are invisible; hard to diagnose semantic cache issues.
-- Fix approach: At minimum log with `logger.warning(...)` before returning the empty fallback.
+~~**Bare `except Exception: return []` silences Milvus errors** — FIXED 2026-07-13~~
+~~`logger.warning(...)` now logs the exception before `return []` in `semantic_cache.py:get_sources()`.~~
 
-**`print()` in config module docstring:**
-- Issue: `print(settings.llm_provider)` appears in the module-level docstring of `config.py` (line 8) — misleading as usage guidance.
-- Files: `services/kb-api/src/core/config.py:8`
-- Fix approach: Remove or replace with a comment showing the attribute access only.
+~~**`print()` in config module docstring** — FIXED 2026-07-13~~
+~~Removed `print(settings.llm_provider)` from the docstring; replaced with bare attribute access example.~~
 
 ## Performance Bottlenecks
 
-**Full-corpus BM25 rebuild on first query (cold start):**
-- Issue: `HybridSearchEngine._build_bm25_index()` fetches all chunks from Milvus and builds a BM25 index in memory on the first search call. With a large knowledge base this can take several seconds and blocks the first user request.
-- Files: `services/kb-api/src/rag/hybrid_search.py:100-115`
-- Impact: High first-request latency; Phase 8 benchmarks show P95=71s.
-- Fix approach: Eager-load the BM25 index during the FastAPI `lifespan` startup event.
+~~**Full-corpus BM25 rebuild on first query (cold start)** — FIXED 2026-07-13~~
+~~`lifespan` startup now calls `svc._search_engine._ensure_bm25_index()` via `run_in_executor` so the index is ready before the first request (`main.py`).~~
 
-**Query embedded twice per request on cache miss:**
-- Issue: `SemanticCacheService.lookup` calls `self._embed_query(query_text)` and `ChatService.stream_answer` calls it again independently. The query is embedded twice on every cache miss.
-- Files: `services/kb-api/src/application/services/chat_service.py:226`, `services/kb-api/src/application/services/semantic_cache_service.py:64`
-- Impact: Doubled embedding latency on cache misses (blocking the event loop twice — see synchronous embedding concern above).
-- Fix approach: Compute the embedding once in `stream_answer` and pass it to both the cache lookup and the vector search.
+~~**Query embedded twice per request on cache miss** — FIXED 2026-07-13~~
+~~`stream_answer` computes `query_embedding` once (before step 2.5), passes it to `SemanticCacheService.lookup(query_text, query_embedding)` and reuses it for `search_engine.search`. `lookup` now accepts an optional `query_embedding` parameter.~~
 
 ## Missing Functionality
 
