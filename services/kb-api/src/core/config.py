@@ -74,9 +74,7 @@ class AppSettings(BaseSettings):
     milvus_collection: str = "career_kb"
 
     # ── PostgreSQL ────────────────────────────────────────────────────
-    database_url: str = (
-        "postgresql+asyncpg://career:secret@localhost:5432/career_kb"
-    )
+    database_url: str  # required — set DATABASE_URL env var; no default to avoid leaking credentials
 
     # ── YouTube Ingestion ─────────────────────────────────────────────
     youtube_api_key: str | None = None
@@ -88,7 +86,8 @@ class AppSettings(BaseSettings):
     # ── Auth ──────────────────────────────────────────────────────────
     secret_key: str = "CHANGE_ME_IN_PRODUCTION_USE_RANDOM_32_CHARS"
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 480
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 7
 
     # ── Sessions ──────────────────────────────────────────────────────
     max_messages_per_session: int = 100

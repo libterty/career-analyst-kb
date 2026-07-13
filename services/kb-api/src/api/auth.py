@@ -1,7 +1,9 @@
 """JWT 認證工具函式。"""
 from __future__ import annotations
 
+import hashlib
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -13,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from src.infrastructure.persistence.models import User
+from src.infrastructure.persistence.models.refresh_token import RefreshToken
 from src.api.dependencies import get_db
 
 # JWT 簽名密鑰（務必在正式環境中替換為隨機 32 字元以上的字串）
@@ -104,6 +107,67 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+async def create_refresh_token(db: AsyncSession, user_id: int, expire_days: int) -> str:
+    """產生 refresh token，以 SHA-256 hash 儲存於 DB，回傳明文 token。"""
+    raw = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw.encode()).hexdigest()
+    expires_at = datetime.now(timezone.utc) + timedelta(days=expire_days)
+    db.add(RefreshToken(token_hash=token_hash, user_id=user_id, expires_at=expires_at))
+    await db.commit()
+    return raw
+
+
+async def verify_and_rotate_refresh_token(db: AsyncSession, raw_token: str) -> User:
+    """驗證 refresh token 並執行 rotation（舊 token 標記 revoked）。
+
+    Returns:
+        對應的 User 物件
+
+    Raises:
+        HTTPException 401: token 無效、過期或已被撤銷
+    """
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    result = await db.execute(
+        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+    )
+    rt = result.scalar_one_or_none()
+
+    now = datetime.now(timezone.utc)
+    if rt is None or rt.revoked_at is not None or rt.expires_at < now:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token 無效或已過期",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Revoke the used token (rotation — prevents replay)
+    rt.revoked_at = now
+    await db.commit()
+
+    result = await db.execute(select(User).where(User.id == rt.user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token 對應的使用者不存在",
+        )
+    return user
+
+
+async def revoke_all_refresh_tokens(db: AsyncSession, user_id: int) -> None:
+    """撤銷指定使用者的所有 refresh token（登出用）。"""
+    result = await db.execute(
+        select(RefreshToken).where(
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked_at.is_(None),
+        )
+    )
+    now = datetime.now(timezone.utc)
+    for rt in result.scalars().all():
+        rt.revoked_at = now
+    await db.commit()
 
 
 def require_role(*roles: str):

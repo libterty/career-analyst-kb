@@ -59,6 +59,7 @@ class TokenDTO(BaseModel):
     """JWT Token 回應 DTO。"""
 
     access_token: str
+    refresh_token: str | None = None
     token_type: str = "bearer"
 
 

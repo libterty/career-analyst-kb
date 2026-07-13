@@ -36,6 +36,15 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info("🚀 Starting Career Analyst KB...")
 
+    # Warn if CORS still allows localhost in production
+    if settings.app_env == "production":
+        localhost_origins = [o.strip() for o in settings.cors_origins.split(",") if "localhost" in o]
+        if localhost_origins:
+            logger.warning(
+                f"⚠️  CORS: production env allows localhost origins {localhost_origins}. "
+                "Set CORS_ORIGINS to the production frontend URL."
+            )
+
     # Guard: reject the dev placeholder secret key in non-development environments
     _DEV_SECRET = "CHANGE_ME_IN_PRODUCTION_USE_RANDOM_32_CHARS"
     if settings.secret_key == _DEV_SECRET and settings.app_env != "development":
@@ -137,6 +146,38 @@ app.include_router(hill_climbing.router)   # /api/admin/hill-climbing/*
 async def health():
     """健康檢查端點，供 Docker / K8s 探針使用。"""
     return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/health/ready", tags=["System"])
+async def health_ready():
+    """Readiness probe：實際探測 Milvus 與 Ollama 是否可用。"""
+    import httpx
+    import pymilvus
+
+    settings = get_settings()
+    checks: dict[str, str] = {}
+
+    try:
+        pymilvus.connections.connect(
+            host=settings.milvus_host, port=settings.milvus_port, timeout=3
+        )
+        pymilvus.utility.has_collection(settings.milvus_collection)
+        checks["milvus"] = "ok"
+    except Exception as exc:
+        checks["milvus"] = f"error: {exc}"
+
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get(f"{settings.ollama_base_url}/api/tags")
+        checks["ollama"] = "ok" if resp.status_code == 200 else f"http_{resp.status_code}"
+    except Exception as exc:
+        checks["ollama"] = f"error: {exc}"
+
+    all_ok = all(v == "ok" for v in checks.values())
+    return JSONResponse(
+        status_code=200 if all_ok else 503,
+        content={"status": "ready" if all_ok else "not_ready", "checks": checks},
+    )
 
 
 # ---- Global Error Handler ------------------------------------------ #

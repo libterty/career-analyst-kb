@@ -11,9 +11,11 @@ from src.infrastructure.persistence.models.feedback import MessageFeedback
 from src.infrastructure.persistence.models.system_prompt import SystemPrompt
 from src.infrastructure.persistence.models.semantic_cache import SemanticCacheEntry
 from src.infrastructure.persistence.models.knowledge_gap import KnowledgeGap
+from src.infrastructure.persistence.models.refresh_token import RefreshToken
 
 __all__ = [
     "User", "ChatSession", "ChatMessage", "Document",
     "MessageFeedback", "SystemPrompt", "SemanticCacheEntry", "KnowledgeGap",
+    "RefreshToken",
 ]
 

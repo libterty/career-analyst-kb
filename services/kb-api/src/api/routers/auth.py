@@ -13,17 +13,32 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.auth import get_current_user
-from src.api.dependencies import get_auth_service
+from src.api.auth import (
+    create_access_token,
+    create_refresh_token,
+    get_current_user,
+    revoke_all_refresh_tokens,
+    verify_and_rotate_refresh_token,
+)
+from src.api.dependencies import get_auth_service, get_db
 from src.application.dto.auth_dto import TokenDTO, UserCreateDTO
 from src.application.services.auth_service import AuthService
+from src.core.config import get_settings
 from src.core.exceptions import AuthenticationError
 from src.infrastructure.persistence.models import User
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+DbDep = Annotated[AsyncSession, Depends(get_db)]
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 @router.get("/me")
@@ -41,10 +56,11 @@ async def me(current_user: User = Depends(get_current_user)):
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     auth_service: AuthServiceDep = None,
+    db: DbDep = None,
 ):
-    """使用者登入，回傳 JWT Access Token（OAuth2 Password Flow）。"""
+    """使用者登入，回傳 short-lived JWT Access Token 與 Refresh Token。"""
     try:
-        token = await auth_service.authenticate(
+        access_token = await auth_service.authenticate(
             form_data.username, form_data.password
         )
     except AuthenticationError as e:
@@ -53,7 +69,36 @@ async def login(
             detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return TokenDTO(access_token=token)
+
+    result = await db.execute(select(User).where(User.username == form_data.username))
+    user = result.scalar_one()
+    settings = get_settings()
+    refresh_token = await create_refresh_token(db, user.id, settings.refresh_token_expire_days)
+
+    return TokenDTO(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/refresh", response_model=TokenDTO)
+async def refresh(body: RefreshRequest, db: DbDep = None):
+    """使用 Refresh Token 換發新的 Access Token（token rotation）。"""
+    user = await verify_and_rotate_refresh_token(db, body.refresh_token)
+    settings = get_settings()
+    new_refresh = await create_refresh_token(db, user.id, settings.refresh_token_expire_days)
+    from datetime import timedelta
+    access_token = create_access_token(
+        {"sub": user.username, "role": user.role},
+        expires_delta=timedelta(minutes=settings.access_token_expire_minutes),
+    )
+    return TokenDTO(access_token=access_token, refresh_token=new_refresh)
+
+
+@router.post("/logout", status_code=204)
+async def logout(
+    db: DbDep = None,
+    current_user: User = Depends(get_current_user),
+):
+    """登出：撤銷目前使用者的所有 Refresh Token。"""
+    await revoke_all_refresh_tokens(db, current_user.id)
 
 
 @router.post("/register", response_model=dict, status_code=201)
