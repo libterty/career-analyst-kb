@@ -115,6 +115,21 @@ services:
     profiles:
       - voltagent
 
+  # ── kb-web (Next.js) ──────────────────────────
+  kb-web:
+    build:
+      context: ../services/kb-web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ""
+    depends_on:
+      - app
+    restart: unless-stopped
+    profiles:
+      - kb-web
+
   # ── Nginx ──────────────────────────────────────
   nginx:
     image: nginx:alpine
