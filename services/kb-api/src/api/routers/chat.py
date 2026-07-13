@@ -19,7 +19,6 @@ from loguru import logger
 
 from src.api.auth import get_current_user
 from src.api.dependencies import get_chat_service
-from src.api.limiter import limiter
 from src.core.tracing import langfuse_trace_id_var
 from src.application.dto.chat_dto import ChatRequestDTO, ChatResponseDTO, SourceDocumentDTO
 from src.application.services.chat_service import ChatService
@@ -35,7 +34,6 @@ _KEEPALIVE_INTERVAL = 15
 
 
 @router.post("/query")
-@limiter.limit("20/minute")
 async def chat_query(
     request: Request,
     body: ChatRequestDTO,
@@ -97,7 +95,6 @@ async def chat_query(
 
 
 @router.post("/query/sync", response_model=ChatResponseDTO)
-@limiter.limit("10/minute")
 async def chat_query_sync(
     request: Request,
     body: ChatRequestDTO,

@@ -12,6 +12,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from src.api.auth import hash_password
 from src.api.limiter import limiter
@@ -110,6 +111,7 @@ app = FastAPI(
 # 掛載速率限制器與例外處理器
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Correlation ID — must be added before CORS so the response header is always present
 app.add_middleware(CorrelationIdMiddleware)
