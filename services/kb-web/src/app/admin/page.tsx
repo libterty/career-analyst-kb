@@ -6,8 +6,9 @@ import { getToken } from "@/lib/auth";
 import { getMe } from "@/lib/api";
 import UsersTab from "@/components/admin/UsersTab";
 import PromptsTab from "@/components/admin/PromptsTab";
+import DocumentsTab from "@/components/admin/DocumentsTab";
 
-type Tab = "users" | "prompts";
+type Tab = "users" | "prompts" | "documents";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -16,7 +17,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     const token = getToken();
-    if (!token) { router.push("/login"); return; }
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     getMe()
       .then((me) => {
         if (me.role !== "admin") router.push("/");
@@ -39,13 +43,18 @@ export default function AdminPage() {
         <span className="text-2xl">⚙️</span>
         <h1 className="text-xl font-bold">管理面板</h1>
         <div className="ml-auto flex gap-3">
-          <a href="/" className="text-sm opacity-80 hover:opacity-100 hover:underline">← 返回聊天</a>
+          <a
+            href="/"
+            className="text-sm opacity-80 hover:opacity-100 hover:underline"
+          >
+            ← 返回聊天
+          </a>
         </div>
       </header>
 
       <div className="max-w-5xl mx-auto p-6">
         <div className="flex gap-1 border-b border-gray-200 mb-6">
-          {(["users", "prompts"] as Tab[]).map((t) => (
+          {(["users", "prompts", "documents"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -55,13 +64,18 @@ export default function AdminPage() {
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              {t === "users" ? "👥 使用者" : "📝 系統 Prompt"}
+              {t === "users"
+                ? "👥 使用者"
+                : t === "prompts"
+                  ? "📝 系統 Prompt"
+                  : "📄 文件"}
             </button>
           ))}
         </div>
 
         {tab === "users" && <UsersTab />}
         {tab === "prompts" && <PromptsTab />}
+        {tab === "documents" && <DocumentsTab />}
       </div>
     </div>
   );

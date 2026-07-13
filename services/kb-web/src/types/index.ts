@@ -46,3 +46,12 @@ export interface AuthMe {
   is_active: boolean;
   max_sessions: number;
 }
+
+export interface DocumentItem {
+  id: number;
+  filename: string;
+  doc_hash: string;
+  pages: number;
+  chunk_count: number;
+  uploaded_at: string;
+}
