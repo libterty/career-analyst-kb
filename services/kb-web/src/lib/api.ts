@@ -427,10 +427,22 @@ export async function getHillClimbingPending(): Promise<HillClimbingPending> {
 
 export async function applyHillClimbingDiffs(
   approvedIds: string[],
-): Promise<{ applied: string[]; missed: string[]; note: string }> {
+): Promise<{
+  applied: string[];
+  missed: string[];
+  archived: string | null;
+  note: string;
+}> {
   return request("/api/admin/hill-climbing/apply", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ approved_ids: approvedIds }),
   });
+}
+
+export async function archiveHillClimbingBatch(): Promise<{
+  archived: string;
+  note: string;
+}> {
+  return request("/api/admin/hill-climbing/archive", { method: "POST" });
 }

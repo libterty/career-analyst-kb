@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   getHillClimbingPending,
   applyHillClimbingDiffs,
+  archiveHillClimbingBatch,
   type HillClimbingDiff,
   type HillClimbingPending,
 } from "@/lib/api";
@@ -25,6 +26,7 @@ export default function HillClimbingTab() {
   const [loading, setLoading] = useState(true);
   const [approved, setApproved] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,6 +70,7 @@ export default function HillClimbingTab() {
           (res.missed.length
             ? `；${res.missed.length} 筆未匹配（ID: ${res.missed.join(", ")}）`
             : "") +
+          (res.archived ? "\n📦 批次已自動封存。" : "") +
           `\n${res.note}`,
       );
       await load();
@@ -78,8 +81,25 @@ export default function HillClimbingTab() {
     }
   }
 
+  async function handleArchive() {
+    setArchiving(true);
+    setError(null);
+    setResult(null);
+    try {
+      await archiveHillClimbingBatch();
+      setResult("📦 批次已封存，待審核佇列已清空。");
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "封存失敗");
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   if (loading) {
-    return <div className="text-gray-500 text-sm py-8 text-center">載入中…</div>;
+    return (
+      <div className="text-gray-500 text-sm py-8 text-center">載入中…</div>
+    );
   }
 
   if (error && !data) {
@@ -130,7 +150,9 @@ export default function HillClimbingTab() {
 
       {/* Diff list */}
       {diffs.length === 0 ? (
-        <p className="text-gray-500 text-sm text-center py-6">目前沒有待審核的差異</p>
+        <p className="text-gray-500 text-sm text-center py-6">
+          目前沒有待審核的差異
+        </p>
       ) : (
         <>
           <div className="space-y-4">
@@ -164,6 +186,14 @@ export default function HillClimbingTab() {
             >
               全取消
             </button>
+            <button
+              onClick={handleArchive}
+              disabled={archiving}
+              className="ml-auto px-3 py-2 border border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition disabled:opacity-50"
+              title="封存此批次，不套用差異"
+            >
+              {archiving ? "封存中…" : "📦 封存此批次"}
+            </button>
           </div>
         </>
       )}
@@ -193,7 +223,10 @@ export default function HillClimbingTab() {
                     </span>
                   )}
                   {entry.applied_by && (
-                    <span className="text-gray-400"> · by {entry.applied_by}</span>
+                    <span className="text-gray-400">
+                      {" "}
+                      · by {entry.applied_by}
+                    </span>
                   )}
                 </span>
               </div>

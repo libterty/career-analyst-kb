@@ -50,15 +50,38 @@ class ApplyRequest(BaseModel):
     approved_ids: list[str]
 
 
+def _archive_latest(diffs_dir: Path) -> str | None:
+    """Move latest.json to a timestamped archive file and return archive path, or None if nothing to archive."""
+    latest = diffs_dir / "latest.json"
+    if not latest.exists():
+        return None
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
+    archive_path = diffs_dir / f"{ts}_archived.json"
+    shutil.move(str(latest), archive_path)
+    return str(archive_path)
+
+
+@router.post("/archive")
+async def archive_batch(_user: AdminUserDep) -> dict:
+    """將目前的 latest.json 封存為時間戳檔案，清空待審核佇列。"""
+    diffs_dir = HILL_CLIMBING_DIR / "proposed-diffs"
+    archived = _archive_latest(diffs_dir)
+    if archived is None:
+        raise HTTPException(404, "目前沒有待封存的批次")
+    return {"archived": archived, "note": "批次已封存，待審核佇列已清空。"}
+
+
 @router.post("/apply")
 async def apply_diffs(body: ApplyRequest, user: AdminUserDep) -> dict:
     """對 supervisor.ts 套用指定 diff ID，並記錄到 apply-log.jsonl。"""
-    latest = HILL_CLIMBING_DIR / "proposed-diffs" / "latest.json"
+    diffs_dir = HILL_CLIMBING_DIR / "proposed-diffs"
+    latest = diffs_dir / "latest.json"
     if not latest.exists():
         raise HTTPException(404, "找不到待審核的 diff 檔案")
 
     data = json.loads(latest.read_text())
-    diffs_by_id = {d["id"]: d for d in data["diffs"]}
+    all_diffs = data["diffs"]
+    diffs_by_id = {d["id"]: d for d in all_diffs}
 
     supervisor_path = VOLTAGENT_AGENTS_DIR / "supervisor.ts"
     if not supervisor_path.exists():
@@ -101,9 +124,16 @@ async def apply_diffs(body: ApplyRequest, user: AdminUserDep) -> dict:
     with open(log_path, "a") as f:
         f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
 
+    # Auto-archive when every diff in the batch has been attempted (applied or missed)
+    archived = None
+    if len(body.approved_ids) >= len(all_diffs):
+        archived = _archive_latest(diffs_dir)
+
     return {
         "applied": applied,
         "missed": missed,
         "backup": str(backup_path),
-        "note": "VoltAgent（dev 模式）偵測到 supervisor.ts 變更後會自動重啟，無需手動操作。",
+        "archived": archived,
+        "note": "VoltAgent（dev 模式）偵測到 supervisor.ts 變更後會自動重啟，無需手動操作。"
+        + ("  批次已自動封存。" if archived else ""),
     }
