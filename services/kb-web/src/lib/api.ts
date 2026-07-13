@@ -392,3 +392,45 @@ export async function updatePrompt(
 export async function deletePrompt(promptId: number): Promise<void> {
   await request(`/api/admin/system-prompts/${promptId}`, { method: "DELETE" });
 }
+
+// ── Hill Climbing ─────────────────────────────────────────────────────────────
+
+export interface HillClimbingDiff {
+  id: string;
+  risk: string;
+  target_category: string;
+  rationale: string;
+  original_excerpt: string;
+  replacement: string;
+}
+
+export interface ApplyLogEntry {
+  timestamp: string;
+  applied: string[];
+  missed: string[];
+  backup: string;
+  outcome: string;
+  applied_by?: string;
+}
+
+export interface HillClimbingPending {
+  generated_at: string | null;
+  overall_accuracy: number | null;
+  summary: string;
+  diffs: HillClimbingDiff[];
+  apply_log: ApplyLogEntry[];
+}
+
+export async function getHillClimbingPending(): Promise<HillClimbingPending> {
+  return request<HillClimbingPending>("/api/admin/hill-climbing/pending");
+}
+
+export async function applyHillClimbingDiffs(
+  approvedIds: string[],
+): Promise<{ applied: string[]; missed: string[]; note: string }> {
+  return request("/api/admin/hill-climbing/apply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ approved_ids: approvedIds }),
+  });
+}

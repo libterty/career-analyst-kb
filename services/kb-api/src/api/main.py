@@ -18,7 +18,7 @@ from src.core.tracing import langfuse_client
 from src.infrastructure.persistence.database import AsyncSessionLocal
 from src.infrastructure.persistence.migrations import run_migrations
 from src.infrastructure.repositories.user_repository import SQLAlchemyUserRepository
-from .routers import admin, auth, chat, documents, ingestion, sessions, feedback, system_prompts, knowledge_gaps
+from .routers import admin, auth, chat, documents, ingestion, sessions, feedback, system_prompts, knowledge_gaps, hill_climbing
 
 # ---- Rate Limiter -------------------------------------------------- #
 # 依來源 IP 進行請求頻率限制，防止濫用
@@ -103,6 +103,7 @@ app.include_router(feedback.router)        # /api/feedback/*
 app.include_router(system_prompts.router)  # /api/admin/system-prompts/*
 app.include_router(ingestion.router)       # /api/ingestion/*
 app.include_router(knowledge_gaps.router)  # /api/knowledge-gaps/*
+app.include_router(hill_climbing.router)   # /api/admin/hill-climbing/*
 
 
 # ---- Health Check -------------------------------------------------- #

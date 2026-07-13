@@ -26,6 +26,8 @@ services:
       - ../services/kb-api/src:/app/src
       - ../services/kb-api/migrations:/app/migrations
       - ../services/kb-web:/app/services/kb-web
+      - ../services/voltagent-career/hill-climbing:/app/hill-climbing
+      - ../services/voltagent-career/src/agents:/app/voltagent-agents
     restart: unless-stopped
 
   # ── PostgreSQL ─────────────────────────────────

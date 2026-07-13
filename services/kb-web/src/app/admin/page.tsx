@@ -7,8 +7,9 @@ import { getMe } from "@/lib/api";
 import UsersTab from "@/components/admin/UsersTab";
 import PromptsTab from "@/components/admin/PromptsTab";
 import DocumentsTab from "@/components/admin/DocumentsTab";
+import HillClimbingTab from "@/components/admin/HillClimbingTab";
 
-type Tab = "users" | "prompts" | "documents";
+type Tab = "users" | "prompts" | "documents" | "hillclimbing";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -54,28 +55,33 @@ export default function AdminPage() {
 
       <div className="max-w-5xl mx-auto p-6">
         <div className="flex gap-1 border-b border-gray-200 mb-6">
-          {(["users", "prompts", "documents"] as Tab[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${
-                tab === t
-                  ? "bg-white border border-b-white text-blue-700 -mb-px"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {t === "users"
-                ? "👥 使用者"
-                : t === "prompts"
-                  ? "📝 系統 Prompt"
-                  : "📄 文件"}
-            </button>
-          ))}
+          {(["users", "prompts", "documents", "hillclimbing"] as Tab[]).map(
+            (t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${
+                  tab === t
+                    ? "bg-white border border-b-white text-blue-700 -mb-px"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {t === "users"
+                  ? "👥 使用者"
+                  : t === "prompts"
+                    ? "📝 系統 Prompt"
+                    : t === "documents"
+                      ? "📄 文件"
+                      : "🔬 Prompt 調整"}
+              </button>
+            ),
+          )}
         </div>
 
         {tab === "users" && <UsersTab />}
         {tab === "prompts" && <PromptsTab />}
         {tab === "documents" && <DocumentsTab />}
+        {tab === "hillclimbing" && <HillClimbingTab />}
       </div>
     </div>
   );
