@@ -425,9 +425,7 @@ export async function getHillClimbingPending(): Promise<HillClimbingPending> {
   return request<HillClimbingPending>("/api/admin/hill-climbing/pending");
 }
 
-export async function applyHillClimbingDiffs(
-  approvedIds: string[],
-): Promise<{
+export async function applyHillClimbingDiffs(approvedIds: string[]): Promise<{
   applied: string[];
   missed: string[];
   archived: string | null;
@@ -445,4 +443,24 @@ export async function archiveHillClimbingBatch(): Promise<{
   note: string;
 }> {
   return request("/api/admin/hill-climbing/archive", { method: "POST" });
+}
+
+// ── Knowledge Gaps ────────────────────────────────────────────────────────────
+
+export async function getKnowledgeGaps(
+  status?: "open" | "reviewed" | "resolved",
+): Promise<import("@/types").KnowledgeGap[]> {
+  const params = status ? `?status=${status}` : "";
+  return request(`/api/knowledge-gaps${params}`);
+}
+
+export async function updateKnowledgeGapStatus(
+  gapId: number,
+  status: "open" | "reviewed" | "resolved",
+): Promise<import("@/types").KnowledgeGap> {
+  return request(`/api/knowledge-gaps/${gapId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
 }

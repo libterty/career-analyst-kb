@@ -1,16 +1,55 @@
 """KnowledgeGaps Router — 接收 KB agent 回報的低品質答案記錄。"""
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.auth import require_role
 from src.api.dependencies import get_db
 from src.application.dto.knowledge_gap_dto import KnowledgeGapCreateDTO, KnowledgeGapResponseDTO
+from src.infrastructure.persistence.models import User
 from src.infrastructure.repositories.knowledge_gap_repository import SQLAlchemyKnowledgeGapRepository
 
 router = APIRouter(prefix="/api/knowledge-gaps", tags=["KnowledgeGaps"])
+
+AdminUserDep = Annotated[User, Depends(require_role("admin"))]
+
+
+class KnowledgeGapStatusUpdateDTO(BaseModel):
+    status: Literal["open", "reviewed", "resolved"]
+
+
+@router.get("", response_model=list[KnowledgeGapResponseDTO])
+async def list_knowledge_gaps(
+    _: AdminUserDep,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    status: Literal["open", "reviewed", "resolved"] | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+):
+    """列出所有知識缺口記錄（僅限管理員）。按出現次數降序排列。"""
+    repo = SQLAlchemyKnowledgeGapRepository(db)
+    return await repo.list_all(status=status, limit=limit, offset=offset)
+
+
+@router.patch("/{gap_id}/status", response_model=KnowledgeGapResponseDTO)
+async def update_knowledge_gap_status(
+    gap_id: int,
+    body: KnowledgeGapStatusUpdateDTO,
+    _: AdminUserDep,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """更新知識缺口狀態（open / reviewed / resolved）。"""
+    repo = SQLAlchemyKnowledgeGapRepository(db)
+    gap = await repo.update_status(gap_id, body.status)
+    if gap is None:
+        raise HTTPException(status_code=404, detail="Knowledge gap not found")
+    await db.commit()
+    await db.refresh(gap)
+    return gap
 
 
 @router.post("", response_model=KnowledgeGapResponseDTO, status_code=201)

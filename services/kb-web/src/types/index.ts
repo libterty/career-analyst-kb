@@ -55,3 +55,18 @@ export interface DocumentItem {
   chunk_count: number;
   uploaded_at: string;
 }
+
+export type KnowledgeGapStatus = "open" | "reviewed" | "resolved";
+
+export interface KnowledgeGap {
+  id: number;
+  question_hash: string;
+  redacted_question: string;
+  agent_name: string;
+  trigger: string;
+  quality_score: number | null;
+  status: KnowledgeGapStatus;
+  occurrences: number;
+  created_at: string;
+  last_seen_at: string;
+}
