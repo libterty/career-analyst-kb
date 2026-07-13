@@ -6,8 +6,9 @@
 #     verify the rag-retrieve span appears in Langfuse linked to that ID.
 #     Proves kb-api Langfuse instrumentation + cross-service stitching work.
 #
-#   Phase 2 (slow, optional): Call VoltAgent with a skill_development question
-#     that should force queryCareerKB tool use, then verify the rag-retrieve
+#   Phase 2 (slow, optional): Call VoltAgent with a @hrjasmin-specific question
+#     that requires queryCareerKB tool use (LLM cannot answer from own knowledge),
+#     then verify the rag-retrieve
 #     span appears in Langfuse.  Skipped if --quick flag is set.
 #
 # Prerequisites:
@@ -106,13 +107,13 @@ fi
 log ""
 log "═══ Phase 2: VoltAgent → kb-api end-to-end ═════════════════════════════"
 log "VoltAgent: $VOLTAGENT_URL"
-log "Sending skill_development query to VoltAgent (may take ~90 s) ..."
+log "Sending KB-specific query to VoltAgent (may take ~90 s) ..."
 
 BEFORE_TS2=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 VA_RESPONSE=$(curl -s -X POST "$VOLTAGENT_URL/agents/CareerLeadAgent/text" \
   -H "Content-Type: application/json" \
-  -d '{"input": "有哪些方法可以提升職場溝通技巧和軟實力？"}' \
+  -d '{"input": "根據 @hrjasmin 頻道的影片內容，她具體提到哪些提升職場技能的方法？請引用影片標題。"}' \
   --max-time 240) \
   || die "VoltAgent request failed (timeout or network error)"
 
