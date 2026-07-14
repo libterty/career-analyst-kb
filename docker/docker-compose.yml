@@ -99,6 +99,15 @@ services:
       - milvus_data:/var/lib/milvus
     restart: unless-stopped
 
+  # ── SearXNG (web search backend) ──────────────
+  searxng:
+    image: searxng/searxng:latest
+    environment:
+      SEARXNG_BASE_URL: "http://searxng:8080"
+    volumes:
+      - ./searxng-settings.yml:/etc/searxng/settings.yml:ro
+    restart: unless-stopped
+
   # ── VoltAgent ──────────────────────────────────
   voltagent:
     build:
@@ -113,6 +122,7 @@ services:
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       VOLTAGENT_MODEL: ${VOLTAGENT_MODEL:-qwen3:14b}
       SPECIALIST_MODEL: ${SPECIALIST_MODEL:-qwen3:14b}
+      SEARXNG_URL: "http://searxng:8080"
       PORT: 3141
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
@@ -121,6 +131,8 @@ services:
       - ../services/voltagent-career/src:/app/src:ro
     depends_on:
       app:
+        condition: service_started
+      searxng:
         condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3141/agents"]

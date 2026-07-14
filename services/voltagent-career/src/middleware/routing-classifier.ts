@@ -7,6 +7,7 @@ export type AgentTarget =
   | "interview"
   | "career-plan"
   | "salary"
+  | "web-search"
   | "direct";
 
 export type RoutingDecision = {
@@ -16,7 +17,14 @@ export type RoutingDecision = {
 };
 
 const routingSchema = z.object({
-  agent: z.enum(["resume", "interview", "career-plan", "salary", "direct"]),
+  agent: z.enum([
+    "resume",
+    "interview",
+    "career-plan",
+    "salary",
+    "web-search",
+    "direct",
+  ]),
   confidence: z.number().min(0).max(1),
   reason: z.string(),
 });
@@ -36,6 +44,7 @@ export async function classifyRouting(
 - interview: 面試準備、練習、STAR 方法、面試技巧
 - career-plan: 轉職、升遷、技能發展、職涯方向、職涯規劃
 - salary: 薪資談判、市場行情、offer 評估、薪水比較
+- web-search: 需要即時資訊（含「現在」「最新」「今年」「目前」等時效性詞彙，或詢問特定公司薪資/現況）；主管管理課題（管理團隊、績效面談、新手主管）；職場相處問題（難相處同事、職場霸凌、辦公室政治）
 - direct: 一般職場問題、複合問題、意圖不明確
 
 請回傳最適合的 agent 和你的信心分數（0=完全不確定，1=非常確定）。

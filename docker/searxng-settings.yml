@@ -1,0 +1,17 @@
+use_default_settings: true
+
+server:
+  secret_key: "career-analyst-kb-searxng-dev-secret"
+  limiter: false
+  image_proxy: false
+  port: 8080
+  bind_address: "0.0.0.0"
+
+search:
+  formats:
+    - html
+    - json
+
+ui:
+  query_in_title: false
+  infinite_scroll: false

@@ -11,8 +11,10 @@
       │
       ▼ nginx（port 80）
 VoltAgent Layer（TypeScript, port 3141）
-  SupervisorAgent（CareerLeadAgent）
-    → ResumeAgent / InterviewAgent / CareerPlanAgent / SalaryAgent
+  ① Guardrail（輸入過濾：主題相關性 / Prompt Injection / 有害內容）
+  ② SupervisorAgent（CareerLeadAgent）
+       → ResumeAgent / InterviewAgent / CareerPlanAgent / SalaryAgent
+       → WebSearchAgent → SearXNG（即時搜尋，port 8080）
       │  HTTP
       ▼
 Career KB API（FastAPI, port 8000）
@@ -55,24 +57,35 @@ career-analyst-kb/
   ② VoltAgent 模式 ──► /agents/CareerLeadAgent/stream（SSE）           │
                               │                                         │
                               ▼                                         ▼
-                    [SupervisorAgent]                         RAG Pipeline
-                    qwen3:14b                                 ├── BM25 sparse search
-                    分析問題意圖                               ├── Dense vector search（bge-m3）
-                    決定路由目標                               └── RRF fusion rerank
+                    [Guardrail middleware]                    RAG Pipeline
+                    fastModel（qwen3:4b）                    ├── BM25 sparse search
+                    BLOCK → 拒絕訊息                         ├── Dense vector search（bge-m3）
+                    PASS ↓                                    └── RRF fusion rerank
                               │                                         │
-               ┌──────────────┼──────────────┐                         ▼
-               ▼              ▼              ▼              [Milvus] 向量資料庫
-         ResumeAgent   InterviewAgent  CareerPlanAgent      取回 top-k 相關影片片段
-         SalaryAgent   qwen3:14b       qwen3:14b                       │
-               │       （specialist）  （specialist）                   ▼
-               │              │              │              [Ollama] qwen3:14b
-               └──────────────┴──────────────┘              根據片段生成回答
+                              ▼                                         ▼
+                    [SupervisorAgent]                         [Milvus] 向量資料庫
+                    qwen3:14b                                 取回 top-k 相關影片片段
+                    分析問題意圖                                         │
+                    決定路由目標                                         ▼
+                              │                              [Ollama] qwen3:14b
+          ┌───────────────────┼──────────────────┬──────────► 根據片段生成回答
+          ▼                   ▼                  ▼
+    ResumeAgent         InterviewAgent     CareerPlanAgent
+    SalaryAgent         qwen3:14b          qwen3:14b
+          │             （specialist）     （specialist）
+          │                   │                  │
+          └───────────────────┴──────────────────┘
                               │
                     呼叫工具（擇一）：
                     ├── queryCareerKB ──────────────────────► 同上 RAG Pipeline
                     ├── analyzeJobDescription（InterviewAgent）
                     ├── mockInterviewSession（InterviewAgent）
                     └── analyzeResume（ResumeAgent）
+                              │
+                              ▼
+                    [WebSearchAgent]（即時資訊類問題）
+                    qwen3:14b → SearXNG REST API
+                    適用：公司薪資行情 / 職場相處 / 主管管理 / 產業趨勢
                               │
                               ▼
                     Sub-agent 生成專業回應
@@ -186,6 +199,7 @@ docker compose up -d
 | `app` | FastAPI KB API | 8000 |
 | `voltagent` | VoltAgent 多代理人層 | 3141 |
 | `kb-web` | Next.js Chat UI + Admin Panel | 3000 |
+| `searxng` | 自架搜尋引擎（WebSearchAgent 後端） | — |
 | `postgres` | 對話紀錄 / metadata | 5436 |
 | `milvus-standalone` | 向量資料庫 | 19530 |
 | `etcd` / `minio` | Milvus 依賴 | — |
@@ -222,25 +236,33 @@ open http://localhost:8000/docs  # Swagger API 文件
 
 ## VoltAgent 多代理人層
 
-使用者問題由 **SupervisorAgent（CareerLeadAgent）** 接收，依主題路由到對應的專家子 agent：
+使用者問題由 **Guardrail** 過濾後，交由 **SupervisorAgent（CareerLeadAgent）** 路由到對應的專家子 agent：
 
-| Agent | 職責 | 可用工具 |
-|-------|------|----------|
-| **SupervisorAgent** | 問題理解、路由決策、整合多 agent 回應 | `delegate_task` |
-| **ResumeAgent** | 履歷撰寫、ATS 關鍵字優化、版面結構 | `analyzeResume`, `queryCareerKB` |
-| **InterviewAgent** | 面試準備、STAR 方法、模擬問答、JD 分析 | `analyzeJobDescription`, `mockInterviewSession`, `generateInterviewQuestions`, `queryCareerKB` |
-| **CareerPlanAgent** | 職涯規劃、轉職路徑、技能 Gap 分析 | `queryCareerKB` |
-| **SalaryAgent** | 薪資行情、談判策略、offer 評估 | `queryCareerKB` |
+| 元件 / Agent | 職責 | 模型 |
+|-------------|------|------|
+| **Guardrail** | 輸入過濾：主題相關性、Prompt Injection、有害內容；BLOCK 直接拒絕，失敗則放行 | fastModel（qwen3:4b）|
+| **SupervisorAgent** | 問題理解、路由決策、整合多 agent 回應 | qwen3:14b |
+| **ResumeAgent** | 履歷撰寫、ATS 關鍵字優化、版面結構 | qwen3:14b |
+| **InterviewAgent** | 面試準備、STAR 方法、模擬問答、JD 分析 | qwen3:14b |
+| **CareerPlanAgent** | 職涯規劃、轉職路徑、技能 Gap 分析 | qwen3:14b |
+| **SalaryAgent** | 薪資行情、談判策略、offer 評估 | qwen3:14b |
+| **WebSearchAgent** | 即時資訊：公司薪資行情、職場相處、主管管理課題、產業趨勢 | qwen3:14b |
 
 **Chat UI 切換方式**：`localhost:3000` 右下角 Toggle → 切換到「VoltAgent 多 Agent 路由模式」。
 
-### InterviewAgent 專屬工具
+### Agent 工具對照
 
-| 工具 | 說明 |
-|------|------|
-| `analyzeJobDescription` | 分析 JD 必要技能、面試題方向、準備策略，可搭配履歷做 gap 分析 |
-| `mockInterviewSession` | 模擬面試：評估候選人回答、STAR 架構分析、追問建議 |
-| `generateInterviewQuestions` | 針對特定職位生成面試題目 |
+| Agent | 工具 | 說明 |
+|-------|------|------|
+| ResumeAgent | `analyzeResume` | 履歷評分、ATS 優化建議 |
+| ResumeAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識 |
+| InterviewAgent | `analyzeJobDescription` | 分析 JD 必要技能、面試題方向、準備策略，可搭配履歷做 gap 分析 |
+| InterviewAgent | `mockInterviewSession` | 模擬面試：評估候選人回答、STAR 架構分析、追問建議 |
+| InterviewAgent | `generateInterviewQuestions` | 針對特定職位生成面試題目 |
+| InterviewAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識 |
+| CareerPlanAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識 |
+| SalaryAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識 |
+| WebSearchAgent | `webSearch` | 呼叫 SearXNG 取得即時搜尋結果，Ollama 整合成職涯分析 |
 
 詳見 [services/voltagent-career/README.md](./services/voltagent-career/README.md)
 
@@ -294,6 +316,7 @@ python eval/latency_bench.py --url http://localhost:8000 --runs 20 --concurrency
 | **Embedding** | Ollama bge-m3（1024 dim） |
 | **Vector DB** | Milvus 2.4 |
 | **Search** | Dense + BM25 + RRF fusion |
+| **Web Search** | SearXNG（自架，無 API 費用）|
 | **Relational DB** | PostgreSQL 16 |
 | **Auth** | JWT HS256 |
 | **Tracing** | Langfuse（可選） |
@@ -339,7 +362,8 @@ npm run dev        # port 3000（本地開發用，需設 VOLTAGENT_URL）
 
 ## 相關文件
 
-- [設計文件](./docs/design-career-analyst-kb.md)
+- [系統設計文件](./docs/current/design-career-analyst-kb.md)
+- [Guardrail + WebSearchAgent 設計](./docs/current/design-guardrail-web-agent.md)
 - [KB API README](./services/kb-api/README.md)
 - [VoltAgent README](./services/voltagent-career/README.md)
 - [kb-web README](./services/kb-web/README.md)

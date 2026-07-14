@@ -28,6 +28,7 @@ export const config = {
   ),
   voltagentModel: process.env.VOLTAGENT_MODEL ?? "gemma3:12b",
   judgeModel: process.env.JUDGE_MODEL ?? "qwen3:8b",
+  searxngUrl: process.env.SEARXNG_URL ?? "http://localhost:8080",
   port: parseInt(process.env.PORT ?? "3141", 10),
 } as const;
 
