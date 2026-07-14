@@ -41,6 +41,83 @@ career-analyst-kb/
 
 ---
 
+## 請求流程
+
+### User Query → Sub-Agent → RAG
+
+```
+使用者輸入問題
+      │
+      ▼
+[kb-web] Chat UI
+  使用者選擇模式：
+  ① 直連模式 ──────────────────────────────────────────────────────► [KB API] /api/chat/query（SSE）
+  ② VoltAgent 模式 ──► /agents/CareerLeadAgent/stream（SSE）           │
+                              │                                         │
+                              ▼                                         ▼
+                    [SupervisorAgent]                         RAG Pipeline
+                    qwen3:14b                                 ├── BM25 sparse search
+                    分析問題意圖                               ├── Dense vector search（bge-m3）
+                    決定路由目標                               └── RRF fusion rerank
+                              │                                         │
+               ┌──────────────┼──────────────┐                         ▼
+               ▼              ▼              ▼              [Milvus] 向量資料庫
+         ResumeAgent   InterviewAgent  CareerPlanAgent      取回 top-k 相關影片片段
+         SalaryAgent   qwen3:14b       qwen3:14b                       │
+               │       （specialist）  （specialist）                   ▼
+               │              │              │              [Ollama] qwen3:14b
+               └──────────────┴──────────────┘              根據片段生成回答
+                              │
+                    呼叫工具（擇一）：
+                    ├── queryCareerKB ──────────────────────► 同上 RAG Pipeline
+                    ├── analyzeJobDescription（InterviewAgent）
+                    ├── mockInterviewSession（InterviewAgent）
+                    └── analyzeResume（ResumeAgent）
+                              │
+                              ▼
+                    Sub-agent 生成專業回應
+                              │
+                              ▼
+                    SSE stream 回傳 → Chat UI 即時顯示
+```
+
+### Hill Climbing — Supervisor Prompt 自動優化迴圈
+
+Hill climbing 是一套以 eval 結果驅動的 supervisor routing instructions 持續改善機制：
+
+```
+① Eval Harness
+   eval/routing_eval.py 執行 golden dataset（30 題）
+   記錄每題的 routing trace → eval/results/trace_analysis_latest.json
+         │
+         ▼
+② Harness Improver（hill-climbing/harness-improver.ts）
+   讀取 trace_analysis_latest.json + 當前 supervisor.ts instructions
+   呼叫 LLM 分析 routing 失誤模式
+   產出 proposed-diffs（每條 diff 含 original_excerpt / replacement）
+   風險分類：low_risk（加關鍵字/釐清規則）/ high_risk（重構路由邏輯）
+         │
+         ▼
+③ 人工 Review（Admin Panel → Hill Climbing Tab）
+   列出所有 pending diffs，顯示風險等級與 rationale
+   管理員勾選要套用的 diff → 按「Apply」
+         │
+         ▼
+④ Apply
+   備份當前 supervisor.ts → hill-climbing/backups/supervisor_YYYYMMDD_HHMMSS.ts
+   將勾選的 diff patch 寫入 supervisor.ts instructions
+   記錄到 apply-log.jsonl（timestamp / applied / missed / gate_passed）
+         │
+         ▼
+⑤ 驗證
+   重跑 routing_eval.py 確認 accuracy 是否提升
+   若退步 → 從 backups/ 還原上一版
+```
+
+**核心概念**：每輪迭代都是「量測 → 分析失誤 → 提出修改 → 人工把關 → 套用 → 再量測」，讓 supervisor routing 在不更動模型權重的前提下持續收斂。
+
+---
+
 ## 前置需求
 
 - [Ollama](https://ollama.com) 已安裝並執行
