@@ -104,3 +104,6 @@ eval/results/*
 # logs (cron output, check_new_videos, etc.)
 logs/*
 !logs/.gitkeep
+
+# hill-climbing auto-generated backups
+services/voltagent-career/hill-climbing/backups/
