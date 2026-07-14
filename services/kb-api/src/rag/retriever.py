@@ -99,39 +99,32 @@ class MilvusRetriever(IVectorRetriever):
     def get_all_chunks(self) -> list[SearchResult]:
         """從 Milvus 取出全部切塊，供全語料庫 BM25 索引使用。
 
-        Returns:
-            集合中所有切塊的 SearchResult 列表（score=0）
+        使用 chunk_id cursor 分頁以繞過 Milvus offset+limit ≤ 16384 限制。
         """
         if not self._ready:
             return []
+        self._collection.release()
+        self._collection.load()
+        batch = self._collection.query(
+            expr="token_count >= 0",
+            output_fields=OUTPUT_FIELDS,
+            limit=16384,
+            consistency_level="Strong",
+        )
         results: list[SearchResult] = []
-        offset = 0
-        batch_size = 200
-        while True:
-            batch = self._collection.query(
-                expr="chunk_id != \"\"",
-                output_fields=OUTPUT_FIELDS,
-                limit=batch_size,
-                offset=offset,
-            )
-            if not batch:
-                break
-            for entity in batch:
-                raw_page = entity.get("page_number")
-                page_number = int(raw_page) if raw_page and int(raw_page) > 0 else None
-                results.append(SearchResult(
-                    chunk_id=str(entity.get("chunk_id") or ""),
-                    content=str(entity.get("content") or ""),
-                    source=str(entity.get("source") or ""),
-                    section=str(entity.get("section") or ""),
-                    score=0.0,
-                    page_number=page_number,
-                    video_title=str(entity.get("video_title") or ""),
-                    upload_date=str(entity.get("upload_date") or ""),
-                    url=str(entity.get("url") or ""),
-                ))
-            if len(batch) < batch_size:
-                break
-            offset += batch_size
+        for entity in batch:
+            raw_page = entity.get("page_number")
+            page_number = int(raw_page) if raw_page and int(raw_page) > 0 else None
+            results.append(SearchResult(
+                chunk_id=str(entity.get("chunk_id") or ""),
+                content=str(entity.get("content") or ""),
+                source=str(entity.get("source") or ""),
+                section=str(entity.get("section") or ""),
+                score=0.0,
+                page_number=page_number,
+                video_title=str(entity.get("video_title") or ""),
+                upload_date=str(entity.get("upload_date") or ""),
+                url=str(entity.get("url") or ""),
+            ))
         logger.debug(f"Loaded {len(results)} chunks for full-corpus BM25")
         return results

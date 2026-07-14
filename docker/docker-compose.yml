@@ -17,6 +17,7 @@ services:
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
       CAREER_API_TOKEN: ${CAREER_API_TOKEN:-voltagent-service-token-dev}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
     depends_on:
       postgres:
         condition: service_healthy
