@@ -45,7 +45,7 @@ export default function LoginPage() {
             placeholder="用戶名"
             value={username}
             onChange={(e) => setUsernameInput(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="border border-gray-400 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
           <input
@@ -53,7 +53,7 @@ export default function LoginPage() {
             placeholder="密碼"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="border border-gray-400 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
           {error && <p className="text-red-500 text-xs">{error}</p>}

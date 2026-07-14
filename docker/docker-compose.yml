@@ -18,6 +18,8 @@ services:
       LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
       CAREER_API_TOKEN: ${CAREER_API_TOKEN:-voltagent-service-token-dev}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-bge-m3}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:14b}
+      WORKER_MODEL: ${WORKER_MODEL:-qwen3:14b}
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,7 +111,8 @@ services:
       KB_API_URL: http://app:8000
       CAREER_API_TOKEN: ${CAREER_API_TOKEN:-voltagent-service-token-dev}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
-      VOLTAGENT_MODEL: ${VOLTAGENT_MODEL:-qwen3:8b}
+      VOLTAGENT_MODEL: ${VOLTAGENT_MODEL:-qwen3:14b}
+      SPECIALIST_MODEL: ${SPECIALIST_MODEL:-qwen3:14b}
       PORT: 3141
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
@@ -136,6 +139,7 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: ""
+      VOLTAGENT_URL: "http://voltagent:3141"
     depends_on:
       - app
     restart: unless-stopped

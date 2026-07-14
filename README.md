@@ -1,24 +1,25 @@
 # Career Analyst KB — 職涯分析師知識庫系統
 
-基於 RAG（Retrieval-Augmented Generation）架構的職涯問答系統，知識來源為 YouTube 頻道 YouTube 職涯影片字幕，支援混合向量搜索（Dense + BM25 + RRF）與 VoltAgent 多代理人協作。
+基於 RAG（Retrieval-Augmented Generation）架構的職涯問答系統，知識來源為 YouTube 職涯影片字幕，支援混合向量搜索（Dense + BM25 + RRF）與 VoltAgent 多代理人協作。
 
 ---
 
 ## 系統架構
 
 ```
-使用者 / Chat UI
+使用者 / Chat UI（kb-web, port 3000）
       │
-      ▼
-VoltAgent Layer (TypeScript, port 3141)
-  SupervisorAgent → ResumeAgent / InterviewAgent / CareerPlanAgent / SalaryAgent
+      ▼ nginx（port 80）
+VoltAgent Layer（TypeScript, port 3141）
+  SupervisorAgent（CareerLeadAgent）
+    → ResumeAgent / InterviewAgent / CareerPlanAgent / SalaryAgent
       │  HTTP
       ▼
-Career KB API (FastAPI, port 8000)
-  RAG Pipeline: Hybrid Search (Dense + BM25 + RRF) → Ollama LLM
+Career KB API（FastAPI, port 8000）
+  RAG Pipeline: Hybrid Search（Dense + BM25 + RRF）→ Ollama qwen3:14b
       │
-      ├── Milvus (向量資料庫, port 19530)
-      └── PostgreSQL (對話紀錄, port 5436)
+      ├── Milvus（向量資料庫, port 19530）
+      └── PostgreSQL（對話紀錄, port 5436）
 ```
 
 **Mono-repo 結構：**
@@ -27,13 +28,13 @@ Career KB API (FastAPI, port 8000)
 career-analyst-kb/
 ├── services/
 │   ├── kb-api/              # Python FastAPI + RAG pipeline
-│   └── voltagent-career/    # TypeScript VoltAgent 多代理人層
-├── eval/                    # Eval harness（routing / RAG / latency）
+│   ├── voltagent-career/    # TypeScript VoltAgent 多代理人層
+│   └── kb-web/              # Next.js Chat UI + Admin Panel
+├── eval/                    # Eval harness（routing / RAG / latency / A-B）
 ├── data/
 │   └── processed/transcripts/  # 影片逐字稿
 ├── docker/
 │   └── docker-compose.yml
-├── frontend/                # 靜態 HTML Chat UI
 └── docs/
     └── design-career-analyst-kb.md
 ```
@@ -44,7 +45,7 @@ career-analyst-kb/
 
 - [Ollama](https://ollama.com) 已安裝並執行
 - Docker + Docker Compose
-- Python 3.11+（venv 建議）
+- Python 3.11+（venv 建議，僅開發用）
 
 ---
 
@@ -53,12 +54,12 @@ career-analyst-kb/
 ### 1. 拉取 Ollama 模型
 
 ```bash
-ollama serve &                     # 啟動 Ollama
-ollama pull gemma3:12b             # LLM（~8 GB）
-ollama pull nomic-embed-text       # Embedding model（~274 MB）
+ollama serve &
+ollama pull qwen3:14b        # LLM（~9 GB，supervisor + specialist）
+ollama pull bge-m3           # Embedding model（~1.7 GB）
 ```
 
-> 記憶體不足可改用 `gemma3:4b`（~4 GB），在 `.env` 調整 `LLM_MODEL`。
+> **記憶體參考（M3 Max 36GB）**：qwen3:14b 約 11GB VRAM，bge-m3 約 1.7GB，加 macOS + Docker 共約 16-18GB，不會 swap。
 
 ### 2. 設定環境變數
 
@@ -70,12 +71,13 @@ cp .env.example .env
 主要設定值（`.env`）：
 
 ```dotenv
+# KB API
 LLM_PROVIDER=ollama
-LLM_MODEL=gemma3:12b
+LLM_MODEL=qwen3:14b
 OLLAMA_BASE_URL=http://localhost:11434
 
 EMBEDDING_PROVIDER=ollama
-EMBEDDING_MODEL=nomic-embed-text
+EMBEDDING_MODEL=bge-m3
 
 DATABASE_URL=postgresql+asyncpg://career:secret@localhost:5436/career_kb
 MILVUS_HOST=localhost
@@ -84,9 +86,15 @@ MILVUS_COLLECTION=career_kb
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=changeme123        # 首次啟動後請修改
 
-# VoltAgent（Phase 3+）
-CAREER_API_TOKEN=<POST /api/auth/login 取得>
-VOLTAGENT_MODEL=gemma3:12b
+# VoltAgent
+CAREER_API_TOKEN=<POST /api/auth/token 取得>
+VOLTAGENT_MODEL=qwen3:14b         # SupervisorAgent 用
+SPECIALIST_MODEL=qwen3:14b        # 各 sub-agent 用
+
+# Langfuse（可選，LLM tracing）
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
 ```
 
 ### 3. 啟動服務
@@ -99,10 +107,12 @@ docker compose up -d
 | 服務 | 用途 | Port |
 |------|------|------|
 | `app` | FastAPI KB API | 8000 |
+| `voltagent` | VoltAgent 多代理人層 | 3141 |
+| `kb-web` | Next.js Chat UI + Admin Panel | 3000 |
 | `postgres` | 對話紀錄 / metadata | 5436 |
 | `milvus-standalone` | 向量資料庫 | 19530 |
 | `etcd` / `minio` | Milvus 依賴 | — |
-| `nginx` | 反向代理 | 80 |
+| `nginx` | 反向代理（統一入口） | 80 |
 
 ```bash
 docker compose ps
@@ -124,58 +134,61 @@ while true; do echo "$(date +%H:%M) done: $(grep 'Stored' /tmp/ingest_log.txt | 
 ### 5. 開啟 Chat UI
 
 ```bash
-open http://localhost          # Chat 介面
+open http://localhost          # Chat 介面（nginx 入口）
+open http://localhost:3000     # Chat 介面（直連 kb-web）
 open http://localhost:8000/docs  # Swagger API 文件
 ```
 
+登入：使用 `ADMIN_USERNAME` / `ADMIN_PASSWORD`（預設 `admin` / `changeme123`）。
+
 ---
 
-## VoltAgent 多代理人層（Phase 3+）
+## VoltAgent 多代理人層
 
 使用者問題由 **SupervisorAgent（CareerLeadAgent）** 接收，依主題路由到對應的專家子 agent：
 
-| Agent | 職責 |
-| ----- | ---- |
-| **SupervisorAgent** | 理解問題、路由決策、整合多 agent 回應 |
-| **ResumeAgent** | 履歷撰寫、ATS 關鍵字優化、版面結構建議 |
-| **InterviewAgent** | 面試準備、STAR 方法指導、模擬問答生成 |
-| **CareerPlanAgent** | 職涯規劃、轉職路徑、技能 Gap 分析 |
-| **SalaryAgent** | 薪資行情、談判策略、offer 綜合評估 |
+| Agent | 職責 | 可用工具 |
+|-------|------|----------|
+| **SupervisorAgent** | 問題理解、路由決策、整合多 agent 回應 | `delegate_task` |
+| **ResumeAgent** | 履歷撰寫、ATS 關鍵字優化、版面結構 | `analyzeResume`, `queryCareerKB` |
+| **InterviewAgent** | 面試準備、STAR 方法、模擬問答、JD 分析 | `analyzeJobDescription`, `mockInterviewSession`, `generateInterviewQuestions`, `queryCareerKB` |
+| **CareerPlanAgent** | 職涯規劃、轉職路徑、技能 Gap 分析 | `queryCareerKB` |
+| **SalaryAgent** | 薪資行情、談判策略、offer 評估 | `queryCareerKB` |
 
-所有 agent 透過 `queryCareerKB` tool 存取 KB API，回應引用具體影片內容。
+**Chat UI 切換方式**：`localhost:3000` 右下角 Toggle → 切換到「VoltAgent 多 Agent 路由模式」。
 
-```bash
-# 另開一個 terminal
-cd services/voltagent-career
-npm install
-npm run dev                    # 開發模式，port 3141
-```
+### InterviewAgent 專屬工具
 
-或透過 Docker Compose profile：
-
-```bash
-docker compose --profile voltagent up -d
-```
+| 工具 | 說明 |
+|------|------|
+| `analyzeJobDescription` | 分析 JD 必要技能、面試題方向、準備策略，可搭配履歷做 gap 分析 |
+| `mockInterviewSession` | 模擬面試：評估候選人回答、STAR 架構分析、追問建議 |
+| `generateInterviewQuestions` | 針對特定職位生成面試題目 |
 
 詳見 [services/voltagent-career/README.md](./services/voltagent-career/README.md)
 
 ---
 
-## Eval Harness（Phase 4）
+## Chat UI（kb-web）
 
-三支評測腳本共用一份 **golden dataset**（`eval/golden_dataset.jsonl`，30 題，涵蓋 resume / interview / career_plan / salary / general 五個 topic），結果寫入 `eval/results/`。
+Next.js 前端，功能：
 
-| 腳本 | 指標 | 依賴 |
-| ---- | ---- | ---- |
-| `routing_eval.py` | Topic routing accuracy（CareerClassifier） | 不需要啟動 server |
-| `rag_eval.py` | Relevance score 0–4（LLM-as-judge）、keyword hit rate、sources 附帶率 | KB API + Ollama |
+- **雙模式切換**：直連 KB API SSE 模式 vs VoltAgent 多 Agent 路由模式
+- **主題篩選**：履歷 / 面試 / 薪資 / 職涯規劃 / 求職 / 升遷 / 職場 / 技能發展
+- **Admin Panel**：文件管理、System Prompt 設定、知識缺口分析、User 管理
+
+詳見 [services/kb-web/README.md](./services/kb-web/README.md)
+
+---
+
+## Eval Harness
+
+| 腳本 | 指標 | 說明 |
+|------|------|------|
+| `routing_eval.py` | Topic routing accuracy | 不需啟動 server |
+| `rag_eval.py` | RAG relevance 0–4（LLM-as-judge）、keyword hit rate | KB API + Ollama |
 | `latency_bench.py` | avg / P50 / P95 / P99（可設並發） | KB API |
-
-**routing_eval.py** — 直接 import `CareerClassifier` 在本機執行，測試問題是否被分類到預期 topic（允許多 topic 命中）。
-
-**rag_eval.py** — 對 `/api/chat/query/sync` 發送問題，用 Ollama judge model（預設 `gemma3:12b`）對回答打 0–4 分，同時計算 expected_keywords 命中率與來源引用率。
-
-**latency_bench.py** — 以可設定並發數（`--concurrency`）對 KB API 打壓，輸出完整百分位數分布。
+| `ab_eval.py` | A/B 對比（qwen3:8b vs qwen3:14b） | KB API + Ollama |
 
 ```bash
 # Routing accuracy（不需要 server）
@@ -193,36 +206,20 @@ python eval/latency_bench.py --url http://localhost:8000 --runs 20 --concurrency
 
 ---
 
-## Phase 8 — 模型升級計畫
-
-**目標**：以 [Qwen3.6-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled](https://huggingface.co/hesamation/Qwen3.6-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled-GGUF) 取代現行 Gemma3:12b。
-
-此模型為 Qwen 3.6 35B（MoE，實際 active 3B 參數）以 Claude Opus 4.6 的 Chain-of-Thought 蒸餾資料做 SFT，保留 Qwen 的 agentic 編碼底座，同時獲得 Claude Opus 級別的推理結構。GGUF Q4_K_M 量化版本約 22 GB，可完整 GPU offload 在 **Mac M3 Max 36GB**。
-
-**Phase 8 實作範圍**：
-
-1. 透過 Ollama 載入 GGUF 並驗證 Metal GPU offload
-2. API 層過濾 `<think>…</think>` 推理軌跡，不送到前端（可選 debug header 暴露）
-3. Prompt 微調：KB API system prompt 加入 CoT 引導、各 VoltAgent sub-agent instructions 強化推理格式要求
-4. LoRA fine-tune（Unsloth，選項）：以職涯問答 golden dataset 做領域 SFT
-5. 重跑 eval harness 對比 Gemma3:12b baseline（目標 routing ≥ 88%、RAG relevance ≥ 3.0/4.0）
-
-詳見 [設計文件 Phase 8](./docs/design-career-analyst-kb.md)。
-
----
-
 ## Tech Stack
 
 | 層級 | 技術 |
 |------|------|
+| **Chat UI** | Next.js 15（App Router）+ Tailwind CSS |
 | **KB API** | FastAPI 0.115 + Python 3.11 |
 | **Agent Layer** | VoltAgent 2.7 + TypeScript |
-| **LLM** | Ollama Gemma3:12b（現行）→ Qwen3.6-35B-A3B Reasoning Distilled（Phase 8）/ xAI Grok（可選） |
-| **Embedding** | Ollama nomic-embed-text（768 dim）|
+| **LLM** | Ollama qwen3:14b（supervisor + specialist） |
+| **Embedding** | Ollama bge-m3（1024 dim） |
 | **Vector DB** | Milvus 2.4 |
 | **Search** | Dense + BM25 + RRF fusion |
 | **Relational DB** | PostgreSQL 16 |
 | **Auth** | JWT HS256 |
+| **Tracing** | Langfuse（可選） |
 
 ---
 
@@ -244,10 +241,21 @@ python eval/latency_bench.py --url http://localhost:8000 --runs 20 --concurrency
 ## 開發
 
 ```bash
+# KB API
 cd services/kb-api
 python3.11 -m venv venv && source venv/bin/activate
 pip install -e ".[dev]"
 pytest tests/ -v
+
+# VoltAgent
+cd services/voltagent-career
+npm install
+npm run dev        # hot reload，port 3141
+
+# kb-web
+cd services/kb-web
+npm install
+npm run dev        # port 3000（本地開發用，需設 VOLTAGENT_URL）
 ```
 
 ---
@@ -257,3 +265,4 @@ pytest tests/ -v
 - [設計文件](./docs/design-career-analyst-kb.md)
 - [KB API README](./services/kb-api/README.md)
 - [VoltAgent README](./services/voltagent-career/README.md)
+- [kb-web README](./services/kb-web/README.md)
