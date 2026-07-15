@@ -23,14 +23,14 @@ export default function ChatBox({
   onFirstMessage,
   onMessageCountChange,
 }: Props) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(initialMessages ?? []);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const isFirstMsg = useRef(messageCount === 0);
 
   useEffect(() => {
-    setMessages(initialMessages);
+    setMessages(initialMessages ?? []);
     isFirstMsg.current = messageCount === 0;
   }, [initialMessages, messageCount]);
 
