@@ -143,12 +143,12 @@ export default function ChatBox({
             onKeyDown={handleKeyDown}
             rows={2}
             placeholder="請輸入您的職涯問題…"
-            className="flex-1 resize-none border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+            className="flex-1 resize-none border border-gray-300 rounded-xl px-4 py-2 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
           />
           <button
             onClick={handleSend}
             disabled={isStreaming || atLimit || !input.trim()}
-            className="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-sm font-medium transition disabled:opacity-50 flex-shrink-0"
+            className="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-sm font-medium transition disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed flex-shrink-0"
           >
             發送
           </button>
