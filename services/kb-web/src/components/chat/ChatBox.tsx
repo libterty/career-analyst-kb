@@ -85,7 +85,15 @@ export default function ChatBox({
       },
       onError,
     });
-  }, [sessionId, input, isStreaming, atLimit, messageCount, onFirstMessage, onMessageCountChange]);
+  }, [
+    sessionId,
+    input,
+    isStreaming,
+    atLimit,
+    messageCount,
+    onFirstMessage,
+    onMessageCountChange,
+  ]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -146,11 +154,11 @@ export default function ChatBox({
           </button>
         </div>
         <div className="flex justify-between items-center max-w-4xl mx-auto">
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-600">
             Ctrl+Enter 快速發送 · 基於 @hrjasmin 職涯顧問影片
           </p>
           {rounds > 0 && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-600">
               第 {rounds} / {MAX_ROUNDS} 輪問答
             </span>
           )}

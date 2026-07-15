@@ -81,7 +81,7 @@ function SourcesPanel({ sources }: { sources: Source[] }) {
           className="block text-xs text-blue-600 hover:underline truncate"
         >
           {s.title || s.url}
-          {s.topic && <span className="text-slate-400"> · {s.topic}</span>}
+          {s.topic && <span className="text-slate-600"> · {s.topic}</span>}
         </a>
       ))}
     </div>

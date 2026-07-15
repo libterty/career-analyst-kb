@@ -72,14 +72,22 @@ export default function ConversationSidebar({
         </button>
         {/* Session counter */}
         {count > 0 && (
-          <div className={`mt-1.5 text-[11px] text-center ${atLimit ? "text-red-400 font-semibold" : "text-[#666]"}`}>
-            {atLimit ? `⚠️ 已達上限 ${count} / ${maxSessions}` : `對話：${count} / ${maxSessions}`}
+          <div
+            className={`mt-1.5 text-[11px] text-center ${atLimit ? "text-red-400 font-semibold" : "text-[#999]"}`}
+          >
+            {atLimit
+              ? `⚠️ 已達上限 ${count} / ${maxSessions}`
+              : `對話：${count} / ${maxSessions}`}
             <div className="h-0.5 bg-[#333] rounded mt-1 overflow-hidden">
               <div
                 className="h-full rounded transition-all"
                 style={{
                   width: `${Math.min(100, (count / maxSessions) * 100)}%`,
-                  background: atLimit ? "#ef4444" : count / maxSessions >= 0.8 ? "#f59e0b" : "#3b82f6",
+                  background: atLimit
+                    ? "#ef4444"
+                    : count / maxSessions >= 0.8
+                      ? "#f59e0b"
+                      : "#3b82f6",
                 }}
               />
             </div>
@@ -90,7 +98,9 @@ export default function ConversationSidebar({
       {/* Session list */}
       <div className="flex-1 overflow-y-auto p-1.5 scrollbar-thin">
         {sessions.length > 0 && (
-          <p className="text-[11px] text-[#666] uppercase tracking-wider px-2.5 py-2">最近對話</p>
+          <p className="text-[11px] text-[#999] uppercase tracking-wider px-2.5 py-2">
+            最近對話
+          </p>
         )}
         {sessions.map((s) => (
           <div
@@ -118,17 +128,24 @@ export default function ConversationSidebar({
             ) : (
               <span
                 className={`text-[13px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[185px] ${
-                  currentSessionId === s.session_id ? "text-white" : "text-[#d0d0d0]"
+                  currentSessionId === s.session_id
+                    ? "text-white"
+                    : "text-[#d0d0d0]"
                 }`}
               >
                 {s.title || "新對話"}
               </span>
             )}
-            <span className="text-[11px] text-[#666]">{formatRelative(s.updated_at || s.created_at)}</span>
+            <span className="text-[11px] text-[#999]">
+              {formatRelative(s.updated_at || s.created_at)}
+            </span>
             {/* Actions */}
             <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden group-hover:flex gap-0.5 items-center">
               <button
-                onClick={(e) => { e.stopPropagation(); startRename(s); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startRename(s);
+                }}
                 className="text-[#888] hover:text-blue-400 hover:bg-white/10 rounded p-0.5 text-sm"
                 title="重新命名"
               >
