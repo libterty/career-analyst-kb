@@ -100,61 +100,26 @@ export interface StreamCallbacks {
   onError: (msg: string) => void;
 }
 
-// ── VoltAgent streaming ───────────────────────────────────────────────────────
+// ── VoltAgent (text endpoint, shows typing indicator then full response) ──────
 
-type FilterState = { inThink: boolean; partial: string };
-
-function filterThinkChunk(chunk: string, state: FilterState): string {
-  let visible = "";
-  let buf = state.partial + chunk;
-
-  while (buf.length > 0) {
-    if (state.inThink) {
-      const end = buf.indexOf("</think>");
-      if (end !== -1) {
-        state.inThink = false;
-        buf = buf.slice(end + 8);
-      } else {
-        state.partial = buf.slice(Math.max(0, buf.length - 7));
-        return visible;
-      }
-    } else {
-      const start = buf.indexOf("<think>");
-      if (start !== -1) {
-        visible += buf.slice(0, start);
-        state.inThink = true;
-        buf = buf.slice(start + 7);
-      } else {
-        const keep = Math.max(0, buf.length - 6);
-        visible += buf.slice(0, keep);
-        state.partial = buf.slice(keep);
-        return visible;
-      }
-    }
-  }
-
-  state.partial = "";
-  return visible;
+function stripThinkTags(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 }
 
 export async function streamVoltAgent(
   question: string,
   sessionId: string,
-  topic: string | null,
+  _topic: string | null,
   callbacks: StreamCallbacks,
 ): Promise<void> {
   let res: Response;
   try {
-    res = await fetch(`/agents/CareerLeadAgent/stream`, {
+    res = await fetch(`/agents/CareerLeadAgent/text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         input: question,
-        options: {
-          conversationId: sessionId,
-          userId: sessionId,
-          ...(topic ? { context: { topic } } : {}),
-        },
+        options: { conversationId: sessionId, userId: sessionId },
       }),
     });
   } catch {
@@ -170,40 +135,13 @@ export async function streamVoltAgent(
     return;
   }
 
-  const reader = res.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  const thinkState: FilterState = { inThink: false, partial: "" };
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-
-    for (const line of lines) {
-      if (!line.startsWith("data: ")) continue;
-      const raw = line.slice(6).trim();
-      if (!raw) continue;
-
-      let event: { type: string; text?: string; finishReason?: string };
-      try {
-        event = JSON.parse(raw);
-      } catch {
-        continue;
-      }
-
-      if (event.type === "text-delta" && event.text != null) {
-        const visible = filterThinkChunk(event.text, thinkState);
-        if (visible) callbacks.onToken(visible);
-      } else if (event.type === "finish") {
-        callbacks.onDone();
-        return;
-      }
-    }
-  }
-
+  const data = (await res.json()) as {
+    data?: { text?: string };
+    text?: string;
+  };
+  const raw = data?.data?.text ?? data?.text ?? "";
+  const visible = stripThinkTags(raw);
+  if (visible) callbacks.onToken(visible);
   callbacks.onDone();
 }
 

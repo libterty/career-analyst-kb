@@ -30,3 +30,8 @@ body {
     "Heiti TC",
     sans-serif;
 }
+
+@keyframes typing-dot {
+  0%, 80%, 100% { opacity: 0.2; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-4px); }
+}
