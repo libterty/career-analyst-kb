@@ -66,6 +66,8 @@ export const answerQualityGate = createOutputMiddleware<string>({
   async handler(args) {
     const answer = args.output;
     if (!answer || typeof answer !== "string") return undefined;
+    if (answer.startsWith("[GUARDRAIL_BLOCK]")) return undefined;
+    if (answer.includes("超出了職涯顧問系統的服務範圍")) return undefined;
 
     // Extract user question from context (operation context may carry it)
     const question =
