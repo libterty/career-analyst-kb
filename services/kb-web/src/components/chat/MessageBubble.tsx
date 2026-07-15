@@ -14,12 +14,13 @@ export default function MessageBubble({ message, onRatingChange }: Props) {
 
   useEffect(() => {
     if (message.role === "assistant" && contentRef.current && message.content) {
+      const visible = message.content
+        .replace(/<think>[\s\S]*?<\/think>/g, "")
+        .trim();
       import("marked").then(({ marked }) => {
         marked.use({ breaks: true });
         if (contentRef.current)
-          contentRef.current.innerHTML = marked.parse(
-            message.content,
-          ) as string;
+          contentRef.current.innerHTML = marked.parse(visible) as string;
       });
     }
   }, [message.content, message.role]);
