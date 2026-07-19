@@ -39,6 +39,14 @@ class ChatRequestDTO(BaseModel):
         default=None,
         description="限縮搜索主題（如 interview、salary、career_planning 等），None 表示不限制",
     )
+    agentic: bool = Field(
+        default=False,
+        description="True 時使用 AgenticRAGPipeline（Self-Reflection Loop）",
+    )
+    sub_questions: list[str] = Field(
+        default_factory=list,
+        description="複合問題拆解後的 sub-questions（由 VoltAgent QueryDecomposer 注入，最多 3 個）",
+    )
 
 
 class SourceDocumentDTO(BaseModel):
@@ -61,4 +69,12 @@ class ChatResponseDTO(BaseModel):
     sources: list[SourceDocumentDTO] = Field(default_factory=list)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
+    )
+    retrieval_iterations: int = Field(
+        default=1,
+        description="實際執行的 retrieve 輪數（agentic=true 時才有意義）",
+    )
+    relevance_sufficient: bool = Field(
+        default=True,
+        description="最終 relevance check 結果（agentic=true 時才有意義）",
     )

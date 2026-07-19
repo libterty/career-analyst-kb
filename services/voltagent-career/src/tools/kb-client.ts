@@ -9,19 +9,25 @@ export interface KBResult {
     section: string;
     score: number;
   }>;
+  retrieval_iterations?: number;
+  relevance_sufficient?: boolean;
 }
 
 export async function fetchCareerKB(
   question: string,
   topic?: string,
   sessionId = "voltagent-default",
+  subQuestions?: string[],
 ): Promise<KBResult> {
   const body: Record<string, unknown> = {
     question,
     session_id: sessionId,
     language: "zh-TW",
+    agentic: true,
   };
   if (topic) body.topic = topic;
+  if (subQuestions && subQuestions.length > 0)
+    body.sub_questions = subQuestions.slice(0, 3);
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${config.kbApiToken}`,
