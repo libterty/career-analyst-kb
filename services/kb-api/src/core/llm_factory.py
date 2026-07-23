@@ -94,6 +94,17 @@ def _embedding_provider() -> str:
 
 # ── LLM 建構函式 ──────────────────────────────────────────────────────
 
+def build_fast_llm() -> BaseLanguageModel:
+    """建立輕量 LLM，專用於 relevance check、query rewrite 等非串流判斷任務。
+
+    模型名稱讀取 AppSettings.fast_model（對應 FAST_MODEL env var），
+    temperature=0.1 使分類輸出更穩定。
+    """
+    from src.core.config import get_settings
+    model = get_settings().fast_model
+    return build_llm(model=model, temperature=0.1, streaming=False)
+
+
 def build_llm(
     model: str | None = None,
     temperature: float = 0.3,

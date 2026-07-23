@@ -181,6 +181,31 @@ def _build_chat_service() -> ChatService:
     return service
 
 
+# ── Agentic RAG Pipeline（Singleton）─────────────────────────────────
+
+_agentic_pipeline = None
+
+
+def get_agentic_pipeline():
+    """建立或回傳快取的 AgenticRAGPipeline 實例。
+
+    採用模組層級 singleton，與 get_chat_service() 相同模式。
+    """
+    global _agentic_pipeline
+    if _agentic_pipeline is None:
+        _agentic_pipeline = _build_agentic_pipeline()
+    return _agentic_pipeline
+
+
+def _build_agentic_pipeline():
+    from src.rag.agentic_pipeline import AgenticRAGPipeline
+    settings = get_settings()
+    return AgenticRAGPipeline(
+        milvus_host=settings.milvus_host,
+        milvus_port=settings.milvus_port,
+    )
+
+
 # ── Ingestion Service（Singleton）─────────────────────────────────────
 
 _ingestion_service_cache: dict[int, IngestionService] = {}

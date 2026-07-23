@@ -1,6 +1,6 @@
 # Career Analyst KB — 職涯分析師知識庫系統
 
-基於 RAG（Retrieval-Augmented Generation）架構的職涯問答系統，知識來源為 YouTube 職涯影片字幕，支援混合向量搜索（Dense + BM25 + RRF）與 VoltAgent 多代理人協作。
+基於 RAG（Retrieval-Augmented Generation）架構的職涯問答系統，知識來源為 YouTube 職涯影片字幕，支援混合向量搜索（Dense + BM25 + RRF）與 VoltAgent 多代理人協作。VoltAgent 層整合 **Agentic RAG Pipeline**，具備相關性檢查、查詢改寫、多輪迭代取回與問題拆解能力。
 
 ---
 
@@ -12,13 +12,16 @@
       ▼ nginx（port 80）
 VoltAgent Layer（TypeScript, port 3141）
   ① Guardrail（輸入過濾：主題相關性 / Prompt Injection / 有害內容）
-  ② SupervisorAgent（CareerLeadAgent）
+  ② QueryDecomposer（問題拆解：複合問題 → ≤3 子問題）
+  ③ SupervisorAgent（CareerLeadAgent）
        → ResumeAgent / InterviewAgent / CareerPlanAgent / SalaryAgent
        → WebSearchAgent → SearXNG（即時搜尋，port 8080）
       │  HTTP
       ▼
 Career KB API（FastAPI, port 8000）
-  RAG Pipeline: Hybrid Search（Dense + BM25 + RRF）→ Ollama qwen3:14b
+  Agentic RAG Pipeline:
+    RelevanceChecker → QueryRewriter → Hybrid Search（Dense + BM25 + RRF）
+    → 多輪迭代取回（最多 3 輪） → Ollama qwen3:14b
       │
       ├── Milvus（向量資料庫, port 19530）
       └── PostgreSQL（對話紀錄, port 5436）
@@ -52,18 +55,24 @@ career-analyst-kb/
       │
       ▼
 [kb-web] Chat UI
-  使用者選擇模式：
-  ① 直連模式 ──────────────────────────────────────────────────────► [KB API] /api/chat/query（SSE）
-  ② VoltAgent 模式 ──► /agents/CareerLeadAgent/stream（SSE）           │
+      │
+      ▼ /agents/CareerLeadAgent/stream（SSE）
+                              │
+                              ▼
+                    [Guardrail middleware]                    Agentic RAG Pipeline
+                    fastModel（qwen3:4b）                    ├── RelevanceChecker（fast LLM）
+                    BLOCK → 拒絕訊息                         ├── QueryRewriter（改寫查詢）
+                    PASS ↓                                    ├── BM25 sparse search
+                              │                              ├── Dense vector search（bge-m3）
+                              ▼                              ├── RRF fusion rerank
+                    [QueryDecomposer]                        └── 多輪迭代（最多 3 輪）
+                    fastModel（qwen3:4b）                              │
+                    複合問題 → ≤3 子問題                               ▼
+                    注入 [SUB_QUESTIONS:...] 標記          [Milvus] 向量資料庫
+                    PASS ↓                                 取回 top-k 相關影片片段
                               │                                         │
                               ▼                                         ▼
-                    [Guardrail middleware]                    RAG Pipeline
-                    fastModel（qwen3:4b）                    ├── BM25 sparse search
-                    BLOCK → 拒絕訊息                         ├── Dense vector search（bge-m3）
-                    PASS ↓                                    └── RRF fusion rerank
-                              │                                         │
-                              ▼                                         ▼
-                    [SupervisorAgent]                         [Milvus] 向量資料庫
+                    [SupervisorAgent]                         [Ollama] qwen3:14b
                     qwen3:14b                                 取回 top-k 相關影片片段
                     分析問題意圖                                         │
                     決定路由目標                                         ▼
@@ -241,30 +250,62 @@ open http://localhost:8000/docs  # Swagger API 文件
 | 元件 / Agent | 職責 | 模型 |
 |-------------|------|------|
 | **Guardrail** | 輸入過濾：主題相關性、Prompt Injection、有害內容；BLOCK 直接拒絕，失敗則放行 | fastModel（qwen3:4b）|
-| **SupervisorAgent** | 問題理解、路由決策、整合多 agent 回應 | qwen3:14b |
+| **QueryDecomposer** | 複合問題拆解：問題長度 > 80 字或含並列詞時，LLM 拆成 ≤3 子問題，注入 `[SUB_QUESTIONS:...]` 標記；錯誤 fail-open | fastModel（qwen3:4b）|
+| **SupervisorAgent** | 問題理解、路由決策、解析子問題標記並傳給 queryCareerKB、整合多 agent 回應 | qwen3:14b |
 | **ResumeAgent** | 履歷撰寫、ATS 關鍵字優化、版面結構 | qwen3:14b |
 | **InterviewAgent** | 面試準備、STAR 方法、模擬問答、JD 分析 | qwen3:14b |
 | **CareerPlanAgent** | 職涯規劃、轉職路徑、技能 Gap 分析 | qwen3:14b |
 | **SalaryAgent** | 薪資行情、談判策略、offer 評估 | qwen3:14b |
 | **WebSearchAgent** | 即時資訊：公司薪資行情、職場相處、主管管理課題、產業趨勢 | qwen3:14b |
 
-**Chat UI 切換方式**：`localhost:3000` 右下角 Toggle → 切換到「VoltAgent 多 Agent 路由模式」。
-
 ### Agent 工具對照
 
 | Agent | 工具 | 說明 |
 |-------|------|------|
 | ResumeAgent | `analyzeResume` | 履歷評分、ATS 優化建議 |
-| ResumeAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識 |
+| ResumeAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識（支援 `subQuestions` 多子問題）|
 | InterviewAgent | `analyzeJobDescription` | 分析 JD 必要技能、面試題方向、準備策略，可搭配履歷做 gap 分析 |
 | InterviewAgent | `mockInterviewSession` | 模擬面試：評估候選人回答、STAR 架構分析、追問建議 |
 | InterviewAgent | `generateInterviewQuestions` | 針對特定職位生成面試題目 |
-| InterviewAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識 |
-| CareerPlanAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識 |
-| SalaryAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識 |
+| InterviewAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識（支援 `subQuestions` 多子問題）|
+| CareerPlanAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識（支援 `subQuestions` 多子問題）|
+| SalaryAgent | `queryCareerKB` | 查詢 YouTube KB 影片知識（支援 `subQuestions` 多子問題）|
 | WebSearchAgent | `webSearch` | 呼叫 SearXNG 取得即時搜尋結果，Ollama 整合成職涯分析 |
 
 詳見 [services/voltagent-career/README.md](./services/voltagent-career/README.md)
+
+---
+
+## Agentic RAG 增強
+
+`feat/agentic-rag` 分支在 VoltAgent 層與 KB API 層分三個 Phase 實作了 Agentic RAG 能力：
+
+### Phase 1 — KB API 側（Python）
+
+`services/kb-api/src/rag/agentic_pipeline.py`
+
+| 元件 | 功能 |
+|------|------|
+| `RelevanceChecker` | 每輪取回後，fast LLM 評估片段是否足夠回答問題 |
+| `QueryRewriter` | 相關性不足時，LLM 改寫查詢再做下一輪搜尋 |
+| `AgenticRAGPipeline` | 最多 3 輪迭代取回，直到 `relevance_sufficient=true` 或用完輪數 |
+
+KB API `/api/chat/query/sync` 回應新增欄位：`retrieval_iterations`、`relevance_sufficient`、`sub_questions`。
+
+啟用方式：在請求加 `"agentic": true`（預設開啟）。
+
+### Phase 2 — VoltAgent 側：KB Client 更新
+
+`queryCareerKB` 工具新增選用參數 `subQuestions: string[]`，傳給 KB API 的 `sub_questions` 欄位，讓 Agentic Pipeline 一次取回多個子問題的相關片段。
+
+### Phase 3 — VoltAgent 側：QueryDecomposer Middleware
+
+`services/voltagent-career/src/middleware/query-decomposer.ts`
+
+- **觸發條件**：問題長度 > 80 字，或包含並列詞（並且 / 以及 / 還有 / 同時 / 另外 / 此外 / 而且 / 加上 / 順便問 / 還想問 / 也想了解 / 也請問 / 再問）
+- **行為**：fast LLM（qwen3:4b）拆解成最多 3 個子問題，注入 `[SUB_QUESTIONS:[...]]` 標記到 user message
+- **Fail-open**：任何 LLM 錯誤不中斷流程，返回 undefined（不拆解）
+- **Middleware 順序**：Guardrail → QueryDecomposer → ConfidenceGate
 
 ---
 
@@ -272,7 +313,7 @@ open http://localhost:8000/docs  # Swagger API 文件
 
 Next.js 前端，功能：
 
-- **雙模式切換**：直連 KB API SSE 模式 vs VoltAgent 多 Agent 路由模式
+- **統一走 VoltAgent**：所有問答透過 VoltAgent 多 Agent 路由（直連模式已移除）
 - **主題篩選**：履歷 / 面試 / 薪資 / 職涯規劃 / 求職 / 升遷 / 職場 / 技能發展
 - **Admin Panel**：文件管理、System Prompt 設定、知識缺口分析、User 管理
 
@@ -362,8 +403,9 @@ npm run dev        # port 3000（本地開發用，需設 VOLTAGENT_URL）
 
 ## 相關文件
 
-- [系統設計文件](./docs/current/design-career-analyst-kb.md)
-- [Guardrail + WebSearchAgent 設計](./docs/current/design-guardrail-web-agent.md)
+- [系統設計文件](./docs/design-career-analyst-kb.md)
+- [Guardrail + WebSearchAgent 設計](./docs/design-guardrail-web-agent.md)
+- [Agentic RAG 設計](./docs/agentic-rag/design.md) / [實作說明](./docs/agentic-rag/implement.md)
 - [KB API README](./services/kb-api/README.md)
 - [VoltAgent README](./services/voltagent-career/README.md)
 - [kb-web README](./services/kb-web/README.md)

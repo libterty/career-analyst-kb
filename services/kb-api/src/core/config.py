@@ -46,6 +46,9 @@ class AppSettings(BaseSettings):
     llm_model: str | None = None
     """LLM 模型名稱（None 表示使用各 Provider 的預設模型）"""
 
+    fast_model: str = "qwen3:4b"
+    """輕量 LLM 模型名稱，用於 relevance check、query rewrite 等快速推理任務"""
+
     ollama_base_url: str = "http://localhost:11434"
     """Ollama 服務位址"""
 

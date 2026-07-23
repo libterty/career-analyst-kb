@@ -2,6 +2,7 @@ import { Agent } from "@voltagent/core";
 import { supervisorModel } from "../gateway/model-gateway";
 import { queryCareerKBTool } from "../tools/query-career-kb";
 import { guardrail } from "../middleware/guardrail";
+import { queryDecomposer } from "../middleware/query-decomposer";
 import { confidenceGate } from "../middleware/confidence-gate";
 import { answerQualityGate } from "../judges/answer-quality";
 import { resumeAgent } from "./resume";
@@ -13,6 +14,8 @@ import { webSearchAgent } from "./web-search";
 export const supervisorAgent = new Agent({
   name: "CareerLeadAgent",
   instructions: `你是一位資深職涯顧問，負責理解使用者的職涯問題並路由給最合適的專家 agent。
+
+複合問題處理：若使用者訊息中包含 [SUB_QUESTIONS:["q1","q2",...]] 標記，請在呼叫 queryCareerKB 時將該 JSON 陣列解析後傳入 subQuestions 參數，以獲得更完整的知識庫檢索結果。
 
 路由規則（使用 delegate_task 工具將任務委派給對應的子 agent）：
 - 履歷相關（撰寫、格式、ATS、自傳、投遞策略、求職過程、履歷優化、簡歷調整）→ delegate_task 給 ResumeAgent
@@ -48,6 +51,6 @@ export const supervisorAgent = new Agent({
     salaryAgent,
     webSearchAgent,
   ],
-  inputMiddlewares: [guardrail, confidenceGate],
+  inputMiddlewares: [guardrail, queryDecomposer, confidenceGate],
   outputMiddlewares: [answerQualityGate],
 });

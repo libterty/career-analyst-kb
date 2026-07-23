@@ -18,7 +18,7 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 
 from src.api.auth import get_current_user
-from src.api.dependencies import get_chat_service
+from src.api.dependencies import get_agentic_pipeline, get_chat_service
 from src.core.tracing import langfuse_trace_id_var
 from src.application.dto.chat_dto import ChatRequestDTO, ChatResponseDTO, SourceDocumentDTO
 from src.application.services.chat_service import ChatService
@@ -102,10 +102,17 @@ async def chat_query_sync(
     chat_service: ChatServiceDep = None,
     x_langfuse_trace_id: str | None = Header(default=None),
 ):
-    """非串流問答端點（等待完整回答後一次回傳）。"""
+    """非串流問答端點（等待完整回答後一次回傳）。
+
+    body.agentic=True 時使用 AgenticRAGPipeline（Self-Reflection Loop），
+    回應額外帶 retrieval_iterations 與 relevance_sufficient。
+    """
     session_id = body.session_id or str(uuid.uuid4())
     if x_langfuse_trace_id:
         langfuse_trace_id_var.set(x_langfuse_trace_id)
+
+    if body.agentic:
+        return await _chat_query_sync_agentic(body, session_id, current_user)
 
     try:
         tokens: list[str] = []
@@ -123,4 +130,34 @@ async def chat_query_sync(
         answer=answer,
         session_id=session_id,
         sources=[SourceDocumentDTO(**s) for s in sources],
+    )
+
+
+async def _chat_query_sync_agentic(body: ChatRequestDTO, session_id: str, current_user) -> ChatResponseDTO:
+    """AgenticRAGPipeline 路徑（body.agentic=True）。"""
+    pipeline = get_agentic_pipeline()
+    sub_questions = body.sub_questions[:3] if body.sub_questions else None
+
+    try:
+        tokens: list[str] = []
+        async for token in pipeline.query(
+            body.question,
+            session_id=session_id,
+            sub_questions=sub_questions,
+        ):
+            tokens.append(token)
+    except Exception as exc:
+        logger.exception(f"[AgenticRAG] query failed: {exc}")
+        raise HTTPException(status_code=500, detail="Agentic RAG 發生錯誤，請稍後再試")
+
+    meta = pipeline.get_last_retrieval_meta()
+    answer = "".join(tokens)
+    sources = pipeline.get_sources(body.question, topic=body.topic)
+
+    return ChatResponseDTO(
+        answer=answer,
+        session_id=session_id,
+        sources=[SourceDocumentDTO(**s) for s in sources],
+        retrieval_iterations=meta.iterations,
+        relevance_sufficient=meta.sufficient,
     )
