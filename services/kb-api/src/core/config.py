@@ -11,7 +11,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -116,11 +118,21 @@ class AppSettings(BaseSettings):
     semantic_cache_ttl_hours: int = 24
     """語意快取條目的存活時間（小時）"""
 
-    # ── Agentic RAG Graph ────────────────────────────────────────────
-    agentic_retrieval_graph_enabled: bool = False
-    """True 時 AgenticRAGPipeline 的 retrieval 階段改用 Graph 執行（見
-    docs/graph-design/）。預設 False，行為與既有 inline 實作完全相同，
-    可隨時透過環境變數切回。"""
+    # ── Agentic RAG Retrieval Mode ───────────────────────────────────
+    mode: Literal["Agentic", "Graph"] = "Agentic"
+    """AgenticRAGPipeline 的 retrieval 階段實作選擇：
+        - "Agentic"（預設）：既有 inline self-reflection 迴圈實作，行為不變。
+        - "Graph"：改用 Graph 執行（見 docs/graph-design/）。
+    可隨時透過環境變數 MODE 切回 "Agentic"，兩條路徑回傳型別完全相同。"""
+
+    @field_validator("mode", mode="before")
+    @classmethod
+    def _normalize_mode(cls, v: str) -> str:
+        if isinstance(v, str):
+            normalized = v.strip().capitalize()
+            if normalized in ("Agentic", "Graph"):
+                return normalized
+        return v
 
     # ── App ───────────────────────────────────────────────────────────
     app_env: str = "development"

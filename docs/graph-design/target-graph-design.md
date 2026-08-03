@@ -121,6 +121,6 @@ flowchart TD
 | 逐輪 observability | 迴圈結束後一次 log | 每個 Node 進出都記錄 `node_name/duration/route_decision` |
 | 錯誤處理 | try/except silent fallback（`sufficient=True`） | Node 內部仍保留相同 fallback 語義，但**明確標記為 `error_category`**，可與「內容真的夠」區分 |
 | 對外 API 契約 | `ChatResponseDTO(retrieval_iterations, relevance_sufficient)` | 不變 |
-| 切換方式 | N/A | `AppSettings.agentic_retrieval_graph_enabled`（預設 `False`） |
+| 切換方式 | N/A | `AppSettings.mode`（環境變數 `MODE`，`"Agentic"` \| `"Graph"`，預設 `"Agentic"`） |
 
 State Schema、Node Contract、Router 規則細節見對應文件：`graph-state-schema.md`、`graph-node-contracts.md`。

@@ -44,7 +44,7 @@
 | Retry exhausted（兩輪都 insufficient） | 最終 `relevance_sufficient=False`，仍產出 `final_context`（不是空答案） |
 | Duplicate sub-question chunk（重複事件） | 兩個 sub-question 回傳相同 `chunk_id` → `MergeChunksNode` 去重，驗證不會把同一段落重複塞進 context 兩次 |
 | Parallel Node completion order 不同 | 用 `asyncio.gather` 模擬其中一個分支比另一個慢完成，驗證合併結果與完成順序無關（純粹依 `chunk_id` 去重，不依賴先後順序，除了「先出現的保留」的既有 dict 語意——需與 inline 版行為一致） |
-| Feature flag 關閉 | `agentic_retrieval_graph_enabled=False` 時，`AgenticRAGPipeline._retrieve()` 走既有 inline 程式碼路徑，`node_results` 不產生（因為沒有經過 Graph runner），驗證與 Graph 路徑在**相同輸入**下產出**相同的 `(context, chunks, RetrievalMeta)`**（Shadow 對照測試，非執行期 Shadow Mode，是測試期的一次性等價性驗證，見 `graph-migration-plan.md`） |
+| Feature flag 關閉 | `MODE=Agentic`（預設）時，`AgenticRAGPipeline._retrieve()` 走既有 inline 程式碼路徑，`node_results` 不產生（因為沒有經過 Graph runner），驗證與 `MODE=Graph` 路徑在**相同輸入**下產出**相同的 `(context, chunks, RetrievalMeta)`**（Shadow 對照測試，非執行期 Shadow Mode，是測試期的一次性等價性驗證，見 `graph-migration-plan.md`） |
 
 **Checkpoint resume / Process restart**：本 Phase 不實作跨 process Checkpoint（見 `graph-reliability-design.md`），故不需要對應整合測試；若未來啟用該功能，需在此文件補上對應的 resume 測試案例。
 

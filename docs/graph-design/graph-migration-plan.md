@@ -33,12 +33,12 @@
 2. **抽出 Graph 候選流程**：新增 `services/kb-api/src/rag/graph/` 模組（`state.py`, `nodes.py`, `routing.py`, `runner.py`, `build.py`），封裝 retrieval 階段。
 3. **建立相同 Interface 的 Graph 版本**：`run_retrieval_graph(question, sub_questions, ...) -> tuple[str, list[SearchResult], RetrievalMeta]`——與既有 `_do_retrieve()` 回傳型別完全相同。
 4. **Adapter 包住新 Graph**：`AgenticRAGPipeline._retrieve()` 內以 `if self._use_graph_retrieval: ... else: (既有程式碼)` 分流，兩條路徑共用完全相同的下游（LLM 生成、memory 儲存）。
-5. **Feature Flag 切換**：新增 `AppSettings.agentic_retrieval_graph_enabled: bool = False`（環境變數 `AGENTIC_RETRIEVAL_GRAPH_ENABLED`），預設關閉。
+5. **Feature Flag 切換**：新增 `AppSettings.mode: Literal["Agentic", "Graph"] = "Agentic"`（環境變數 `MODE`），預設 `"Agentic"`（沿用既有 inline 實作）；設為 `"Graph"` 才會切換到 Graph 版本。
 6. **Shadow Mode — 本次不引入執行期 Shadow Mode，原因見下方獨立段落**。
 7. **低風險流量導入**：Phase 1 交付後，建議先在**非生產環境**（或以 `?debug=true` 之類的內部開關）啟用 flag 進行人工驗證＋跑一次 `eval/rag_eval.py`／`eval/latency_bench.py` 比較分數與延遲。
 8. **觀察指標**：`retrieval_iterations` 分布、`relevance_sufficient` 比例、P50/P95 latency（透過既有 Langfuse trace + 新增的 `node_results` 觀察逐節點耗時）。
 9. **逐步增加流量**：確認指標與 flag-off 版本一致後，將預設值改為 `True`（獨立 PR，附上觀察期數據）。
-10. **快速 Rollback**：全程只需將環境變數改回 `False` 並重啟服務，無需 revert 程式碼（因為兩條路徑同時存在於程式碼庫中）。
+10. **快速 Rollback**：全程只需將環境變數 `MODE` 改回 `Agentic` 並重啟服務，無需 revert 程式碼（因為兩條路徑同時存在於程式碼庫中）。
 11. **移除 Legacy 實作**：待 Graph 版本穩定運行一段時間（建議至少覆蓋一次完整的 golden dataset eval 週期）且觀察期無異常後，才在**獨立 PR**中移除 inline 版本的 `_do_retrieve()` 舊程式碼與對應的 flag 判斷分支。**本次任務不執行此步驟**（保留雙路徑）。
 
 ## 為什麼本次不引入執行期 Shadow Mode
@@ -59,7 +59,7 @@
 - ✅ 加入錯誤分類與有限 Retry（`RetrieveNode` 的 Infrastructure retry）
 - ✅ 加入 structured logging（loguru，每個 Node 進出）
 - ✅ 加入 unit 與 graph integration tests
-- ✅ 加入 Feature Flag（`AppSettings.agentic_retrieval_graph_enabled`）
+- ✅ 加入 Feature Flag（`AppSettings.mode`，環境變數 `MODE`，`"Agentic"` \| `"Graph"`）
 - ✅ 更新文件（本系列 9 份文件）
 - ✅ 執行既有及新增測試，確認全部通過
 

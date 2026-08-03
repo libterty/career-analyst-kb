@@ -39,12 +39,12 @@ from ..rag.query_rewriter import QueryRewriter
 
 MAX_ITERATIONS = 2
 
-# Phase 1 Graph 化開關；預設 None 時建構子會讀取 AppSettings。
+# Phase 1 Graph 化開關；預設 None 時建構子會讀取 AppSettings.mode。
 # 見 docs/graph-design/graph-migration-plan.md 的漸進式 migration 步驟。
 def _default_use_graph_retrieval() -> bool:
     try:
         from ..core.config import get_settings
-        return get_settings().agentic_retrieval_graph_enabled
+        return get_settings().mode == "Graph"
     except Exception:
         return False
 
@@ -171,7 +171,7 @@ class AgenticRAGPipeline:
         question: str,
         sub_questions: list[str] | None,
     ) -> tuple[str, list[SearchResult], RetrievalMeta]:
-        """Graph 化版本（feature-flagged, see AppSettings.agentic_retrieval_graph_enabled）。
+        """Graph 化版本（feature-flagged, see AppSettings.mode == "Graph"）。
 
         委派給 src/rag/graph/build.py::run_retrieval_graph()，回傳型別與
         既有 _retrieve() 完全相同，供 query() 二選一呼叫（Adapter 模式，
