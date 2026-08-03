@@ -116,6 +116,12 @@ class AppSettings(BaseSettings):
     semantic_cache_ttl_hours: int = 24
     """語意快取條目的存活時間（小時）"""
 
+    # ── Agentic RAG Graph ────────────────────────────────────────────
+    agentic_retrieval_graph_enabled: bool = False
+    """True 時 AgenticRAGPipeline 的 retrieval 階段改用 Graph 執行（見
+    docs/graph-design/）。預設 False，行為與既有 inline 實作完全相同，
+    可隨時透過環境變數切回。"""
+
     # ── App ───────────────────────────────────────────────────────────
     app_env: str = "development"
     cors_origins: str = "http://localhost:3000"

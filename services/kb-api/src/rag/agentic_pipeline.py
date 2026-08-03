@@ -39,6 +39,15 @@ from ..rag.query_rewriter import QueryRewriter
 
 MAX_ITERATIONS = 2
 
+# Phase 1 Graph 化開關；預設 None 時建構子會讀取 AppSettings。
+# 見 docs/graph-design/graph-migration-plan.md 的漸進式 migration 步驟。
+def _default_use_graph_retrieval() -> bool:
+    try:
+        from ..core.config import get_settings
+        return get_settings().agentic_retrieval_graph_enabled
+    except Exception:
+        return False
+
 _SYSTEM_PROMPT = """你是一位專業的職涯分析師，根據職涯顧問的影片內容協助使用者解決職涯問題。
 請依據以下從影片逐字稿擷取的參考段落回答問題，內容包含履歷撰寫、面試技巧、職涯規劃與薪資談判等主題。
 若參考段落中未包含相關資訊，請誠實說明，切勿自行捏造建議。
@@ -67,7 +76,11 @@ class AgenticRAGPipeline:
         milvus_port: int | None = None,
         llm_model: Optional[str] = None,
         memory_window: int = 10,
+        use_graph_retrieval: bool | None = None,
     ) -> None:
+        self._use_graph_retrieval = (
+            use_graph_retrieval if use_graph_retrieval is not None else _default_use_graph_retrieval()
+        )
         host = milvus_host or os.getenv("MILVUS_HOST", "localhost")
         port = milvus_port or int(os.getenv("MILVUS_PORT", "19530"))
 
@@ -104,7 +117,10 @@ class AgenticRAGPipeline:
         Yields:
             LLM 逐 token 輸出
         """
-        context, results, meta = self._retrieve(question, sub_questions)
+        if getattr(self, "_use_graph_retrieval", False):
+            context, results, meta = await self._retrieve_graph(question, sub_questions)
+        else:
+            context, results, meta = self._retrieve(question, sub_questions)
         self._last_meta = meta
 
         history = self._memory.load_memory_variables({}).get("history", "")
@@ -149,6 +165,31 @@ class AgenticRAGPipeline:
     # ------------------------------------------------------------------
     # Internal
     # ------------------------------------------------------------------
+
+    async def _retrieve_graph(
+        self,
+        question: str,
+        sub_questions: list[str] | None,
+    ) -> tuple[str, list[SearchResult], RetrievalMeta]:
+        """Graph 化版本（feature-flagged, see AppSettings.agentic_retrieval_graph_enabled）。
+
+        委派給 src/rag/graph/build.py::run_retrieval_graph()，回傳型別與
+        既有 _retrieve() 完全相同，供 query() 二選一呼叫（Adapter 模式，
+        見 docs/graph-design/graph-migration-plan.md）。
+        """
+        from .graph import run_retrieval_graph
+
+        context, results, graph_meta = await run_retrieval_graph(
+            question,
+            sub_questions,
+            embedder=self._embedder,
+            search_engine=self._search,
+            prompt_optimizer=self._prompt_optimizer,
+            relevance_checker=self._relevance_checker,
+            query_rewriter=self._query_rewriter,
+            build_context_fn=_build_context,
+        )
+        return context, results, RetrievalMeta(iterations=graph_meta.iterations, sufficient=graph_meta.sufficient)
 
     def _retrieve(
         self,
