@@ -71,11 +71,44 @@
 4. **`eval/rag_eval.py` 對照驗證屬人工步驟**：本次交付以 pytest 自動化測試為主；flag on/off 的 eval score 對照建議在合入主線前由人工執行一次（見 Test Evidence）。
 5. **Checkpoint/Resume 為 Deferred 而非 Not Needed**：目前判斷不需要，但若後續 MAX_ITERATIONS 或流程複雜度上升，需回頭實作（見 `graph-reliability-design.md`）。
 
-## Next Migration Step（下一個候選，本次不擴大實作範圍）
+## Next Migration Step — 已完成實際程式碼分析（結論：更新，非原先猜測）
 
-**VoltAgent WebSearchAgent 路徑**（即時資訊查詢 + 潛在的高風險內容判斷）具備比 F4 更高的 Human-in-the-loop 需求評分（見 `graph-candidate-analysis.md`）。建議下一階段：
-1. 先分析 `services/voltagent-career/src/agents/web-search.ts` 現行流程與其呼叫的外部搜尋工具。
-2. 評估是否需要在「回傳即時資訊」前插入 confidence/風險 Gate（例如資訊來源不明確時降級或標記）。
-3. 若確認需要跨 session 的長時間等待（人工複核已抓取的網路內容），才需要重新評估是否升級到具持久化能力的 Workflow Engine（見上方「何時應該重新評估」）。
+Phase 1 交付時，本文件原先推測「VoltAgent WebSearchAgent 路徑具備更高的 HITL 需求」，屬於**尚未讀程式碼的猜測**。後續實際閱讀 `services/voltagent-career/src/agents/web-search.ts`、`tools/web-search.ts`、`middleware/routing-classifier.ts`、`middleware/confidence-gate.ts`、`judges/answer-quality.ts` 後，結論**修正如下**：
 
-本次任務**不**執行上述分析與實作，僅記錄作為下一階段起點。
+### 實際發現
+
+1. **`WebSearchAgent` 本身是一個 2-step 的 leaf agent**（呼叫 `webSearchTool` 取得 SearXNG 搜尋結果 → LLM 整合成回答），沒有內部條件分支、沒有 retry/repair loop，不滿足「3 個以上處理階段 + 明確條件分支」的候選門檻。
+2. **Supervisor 層級已經是一個運作良好、隱性的 Graph**：
+   - `routing-classifier.ts` 用 structured output（enum `agent` + `confidence: number`）分類——**已符合**任務要求「LLM Router 必須用有限 enum、不允許輸出任意 node name」。
+   - `confidence-gate.ts` 是一個 deterministic threshold router（`confidence < 0.7 → fallback 直接回答`），**已經是**條件分支的 Edge。
+   - `answer-quality.ts` 是一個 bounded retry gate（`MAX_RETRIES = 1`，score `< 3` 才重試），並用 fire-and-forget 方式記錄 `score ≤ 2` 的 knowledge gap——**已經符合**「有限重試 + 不吞例外 + 明確 fallback」的設計原則，且**同時適用於 WebSearchAgent 的輸出**（output middleware 是全域套用，不是 per-agent）。
+   - 這些middleware 全部已經是本任務所定義的 Node/Edge/Retry 語意，只是實作在 VoltAgent 框架的 middleware 機制裡，而非獨立的 Graph engine。
+3. **真正的既有缺口不是「缺少 Graph」，而是一個單點可靠性問題**：`tools/web-search.ts::webSearchTool.execute()` 對 SearXNG 的 `fetch()` 呼叫**沒有 retry、沒有 fallback**——非 2xx 回應直接 `throw`，會讓整個 Agent 呼叫失敗並經由 supervisor 往上拋。這是一次外部 I/O 呼叫的錯誤處理缺陷，**不是**「需要 Graph 化的多階段流程」。
+
+### 修正後的評分（依 `graph-candidate-analysis.md` 相同量表）
+
+| 項目 | 分數 | 說明 |
+|---|---|---|
+| 條件分支複雜度 | 1 | Agent 內部無分支；分支邏輯已在 supervisor middleware 完成 |
+| 錯誤恢復需求 | 2 | 僅需單次 HTTP 呼叫的 retry/fallback，非多節點 repair loop |
+| 長時間執行需求 | 0 | 單次 fetch，15s timeout |
+| 狀態持久化需求 | 0 | 無跨請求狀態 |
+| HITL 需求 | 1 | 全域 `answerQualityGate` 已提供事後品質把關；無新增高風險操作（刪除/付款/發布） |
+| 平行化價值 | 1 | 可平行送出中英文兩組關鍵字搜尋，但屬於 Agent-loop 內部的 tool call 次數優化，非流程級平行分支 |
+| AI/不確定性決策程度 | 2 | 已有 routing-classifier + confidence-gate + answer-quality judge 三層把關 |
+| 可觀測性收益 | 1 | 既有 middleware 結構已可觀測（VoltAgent trace） |
+| 重構風險 | 2 | 改動涉及 shared middleware 鏈，牽動所有 agent 的輸出品質把關 |
+
+**結論：不列入 Graph 化候選**（分數遠低於 F4，且真正的問題是一個局部可靠性缺陷，不是流程建模問題）。
+
+### 建議動作（非 Graph 化，屬一般程式碼修復，供另立 PR 處理）
+
+在 `webSearchTool.execute()` 加上：
+1. 對 `fetch()` 的 timeout/連線錯誤做 1 次重試（無 backoff，SearXNG 為內部服務）。
+2. 重試後仍失敗時回傳一個結構化的「搜尋不可用」結果（而非 `throw`），讓 `WebSearchAgent` 的 LLM 能誠實告知使用者「即時資訊暫時無法取得，以下改用職涯教練知識庫的一般建議」，而不是讓整個請求 500。
+
+此修復規模小、風險低，**不需要**新增 Graph 抽象；已記錄於此供未來獨立處理，本次分析任務不擴大實作範圍。
+
+### 目前已無其他 Graph 化候選
+
+在完成 F4（Agentic RAG Retrieval）與本次 WebSearchAgent 分析後，本專案**目前沒有其他流程符合 Graph 化門檻**（`graph-candidate-analysis.md` 評分表中其餘流程均已評估為不列入）。下一次應該重新評估 Graph 化的觸發條件，見本文件上方「何時應該重新評估」：MAX_ITERATIONS 提高、出現真正的 HITL 需求、需要背景化長時間執行、或出現第二個結構相似的候選流程。

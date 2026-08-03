@@ -34,6 +34,8 @@ Scoring scale 0–5 per dimension (0 = not applicable/low, 5 = strongly applicab
 - **F1/F8**：明確排除的 CRUD 類型，符合任務要求的「不得把普通 CRUD 改成 Agent」。
 - **F9**：Eval 腳本是離線工具，不在 production 請求路徑上，不需要 checkpoint/resume。
 
-## Next candidate（供下一階段參考，不在本次範圍內執行）
+## Next candidate — 已完成分析（結論：不列入）
 
-若 F4 Graph 化驗證成功且需要擴充：**VoltAgent 的 WebSearchAgent 路徑**（即時資訊查詢 + 可能的高風險內容發布）具備更高的 Human-in-the-loop 需求（例如：對外發布內容前需要批准），屆時建議評估在 VoltAgent 層之上或之下引入具持久化 checkpoint 的 Graph/Workflow 層。詳見 `docs/graph-migration-plan.md` 的「Next Migration Step」。
+原先（Phase 1 交付時）推測 VoltAgent 的 `WebSearchAgent` 路徑具備更高的 HITL 需求，值得列為下一個候選。**實際閱讀程式碼後推翻此猜測**：`WebSearchAgent` 只是一個 2-step leaf agent（search tool → LLM 整合），供 supervisor 既有的 `routing-classifier`／`confidence-gate`／`answer-quality` middleware 鏈把關——那條 middleware 鏈本身已經是運作良好的隱性 Graph（structured-output enum router + deterministic threshold edge + bounded retry gate）。真正發現的問題是 `tools/web-search.ts` 對外部 SearXNG 呼叫**沒有 retry/fallback**，但這是單點可靠性缺陷，不構成 Graph 化候選。完整分析與評分見 `docs/graph-design/graph-migration-plan.md` 的「Next Migration Step」段落。
+
+**結論：目前專案沒有其他流程符合 Graph 化門檻。** 下次應重新評估的觸發條件（MAX_ITERATIONS 提高、出現真正 HITL、需要背景化執行、出現第二個結構相似候選）見 `graph-migration-plan.md`。
