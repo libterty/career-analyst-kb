@@ -19,9 +19,14 @@ VoltAgent Layer（TypeScript, port 3141）
       │  HTTP
       ▼
 Career KB API（FastAPI, port 8000）
-  Agentic RAG Pipeline:
-    RelevanceChecker → QueryRewriter → Hybrid Search（Dense + BM25 + RRF）
-    → 多輪迭代取回（最多 3 輪） → Ollama qwen3:14b
+  Agentic RAG Pipeline — retrieval 實作以 MODE 環境變數切換（見 docs/graph-design/）：
+    ┌─ MODE=Agentic（預設，既有 inline 實作）
+    │    RelevanceChecker → QueryRewriter → Hybrid Search（Dense + BM25 + RRF）
+    │    → 多輪迭代取回（最多 2 輪，relevance 不足才重試）
+    └─ MODE=Graph（Phase 1 Graph 化，行為相同、可觀測性更細）
+         EnhanceQuery → Retrieve（單問題）/ Fan-out+Join（sub-questions 平行檢索）
+         → RelevanceCheck → [insufficient 且未達上限 → Rewrite 重試] → BuildContext
+    → Ollama qwen3:14b 生成回答
       │
       ├── Milvus（向量資料庫, port 19530）
       └── PostgreSQL（對話紀錄, port 5436）
@@ -41,7 +46,12 @@ career-analyst-kb/
 ├── docker/
 │   └── docker-compose.yml
 └── docs/
-    └── design-career-analyst-kb.md
+    ├── current/              # 系統設計、Guardrail/WebSearchAgent、request flow
+    ├── agentic-rag/           # Agentic RAG 設計與實作說明
+    ├── graph-design/          # Graph Engineering Phase 1（Agentic RAG retrieval graph）
+    ├── loop-engineer/         # Hill Climbing 迴圈設計
+    ├── multi-model/           # Model Gateway 多模型分工設計
+    └── observability/         # 可觀測性設計
 ```
 
 ---
@@ -65,7 +75,7 @@ career-analyst-kb/
                     PASS ↓                                    ├── BM25 sparse search
                               │                              ├── Dense vector search（bge-m3）
                               ▼                              ├── RRF fusion rerank
-                    [QueryDecomposer]                        └── 多輪迭代（最多 3 輪）
+                    [QueryDecomposer]                        └── 多輪迭代（最多 2 輪，MODE=Agentic|Graph）
                     fastModel（qwen3:4b）                              │
                     複合問題 → ≤3 子問題                               ▼
                     注入 [SUB_QUESTIONS:...] 標記          [Milvus] 向量資料庫
@@ -194,6 +204,9 @@ SPECIALIST_MODEL=qwen3:14b        # 各 sub-agent 用
 LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=
 LANGFUSE_BASE_URL=https://cloud.langfuse.com
+
+# Agentic RAG retrieval 實作選擇（可選，見 docs/graph-design/）
+MODE=Agentic                      # Agentic（預設，既有 self-reflection 迴圈）| Graph（Phase 1 Graph 化版本）
 ```
 
 ### 3. 啟動服務
@@ -288,7 +301,7 @@ open http://localhost:8000/docs  # Swagger API 文件
 |------|------|
 | `RelevanceChecker` | 每輪取回後，fast LLM 評估片段是否足夠回答問題 |
 | `QueryRewriter` | 相關性不足時，LLM 改寫查詢再做下一輪搜尋 |
-| `AgenticRAGPipeline` | 最多 3 輪迭代取回，直到 `relevance_sufficient=true` 或用完輪數 |
+| `AgenticRAGPipeline` | 最多 2 輪迭代取回，直到 `relevance_sufficient=true` 或用完輪數 |
 
 KB API `/api/chat/query/sync` 回應新增欄位：`retrieval_iterations`、`relevance_sufficient`、`sub_questions`。
 
@@ -306,6 +319,20 @@ KB API `/api/chat/query/sync` 回應新增欄位：`retrieval_iterations`、`rel
 - **行為**：fast LLM（qwen3:4b）拆解成最多 3 個子問題，注入 `[SUB_QUESTIONS:[...]]` 標記到 user message
 - **Fail-open**：任何 LLM 錯誤不中斷流程，返回 undefined（不拆解）
 - **Middleware 順序**：Guardrail → QueryDecomposer → ConfidenceGate
+
+---
+
+## Graph Engineering（Phase 1）
+
+`feat/graph-agentic-retrieval` 分支把 `AgenticRAGPipeline` 的 retrieval 階段（enhance → retrieve → relevance check → 條件 rewrite 重試 → build context）明確建模成 State/Node/Edge 的 Graph，取代原本埋在 for-loop 裡的迴圈邏輯：
+
+- **切換方式**：環境變數 `MODE`（`.env`），可選值 `Agentic`（預設，既有 inline 實作，行為不變）或 `Graph`（Phase 1 Graph 化版本），兩者回傳型別完全相同、可隨時切回。
+- **實作位置**：`services/kb-api/src/graph/`（輕量通用 Graph 執行核心）、`services/kb-api/src/rag/graph/`（Retrieval Graph 的 State/Node/Router）。
+- **主要改進**：sub-question 檢索從序列 for-loop 改成平行 Fan-out + Join（`asyncio.gather`）；迴圈終止條件改用獨立的 deterministic router，不再讓判斷埋在 if/else 裡；每個 Node 進出都有結構化 log（耗時、chunk 數、路由決策、錯誤分類）。
+- **為什麼不用 LangGraph/Temporal 等現成框架**：這條流程單次執行 < 5 秒、無需跨 process 恢復、也沒有 Human-in-the-loop 節點，引入重量級 workflow engine 屬於過度工程；完整比較與理由見 `docs/graph-design/graph-migration-plan.md`。
+- **哪些流程刻意沒有 Graph 化**：標準 Chat（線性、無分支）、VoltAgent Supervisor 路由（框架自帶的 middleware/subAgent delegation 已經是等價的 Node/Edge 語意）、Ingestion（決定性 ETL）——完整候選評分見 `docs/graph-design/graph-candidate-analysis.md`。
+
+完整設計文件（9 份）：[docs/graph-design/](./docs/graph-design/)
 
 ---
 
@@ -403,9 +430,14 @@ npm run dev        # port 3000（本地開發用，需設 VOLTAGENT_URL）
 
 ## 相關文件
 
-- [系統設計文件](./docs/design-career-analyst-kb.md)
-- [Guardrail + WebSearchAgent 設計](./docs/design-guardrail-web-agent.md)
+- [系統設計文件](./docs/current/design-career-analyst-kb.md)
+- [Guardrail + WebSearchAgent 設計](./docs/current/design-guardrail-web-agent.md)
+- [Request Flow 詳解](./docs/current/request-flow.md)
 - [Agentic RAG 設計](./docs/agentic-rag/design.md) / [實作說明](./docs/agentic-rag/implement.md)
+- [Graph Engineering 設計（Phase 1）](./docs/graph-design/) — Agentic RAG retrieval graph、候選評分、State/Node/Reliability/Security/Testing/Migration
+- [Hill Climbing 迴圈設計](./docs/loop-engineer/design.md) / [實作說明](./docs/loop-engineer/implement.md)
+- [Model Gateway 多模型分工設計](./docs/multi-model/design.md) / [實作說明](./docs/multi-model/implement.md)
+- [可觀測性設計](./docs/observability/design.md) / [實作說明](./docs/observability/implement.md)
 - [KB API README](./services/kb-api/README.md)
 - [VoltAgent README](./services/voltagent-career/README.md)
 - [kb-web README](./services/kb-web/README.md)
