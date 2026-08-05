@@ -124,7 +124,7 @@ async def chat_query_sync(
         raise HTTPException(status_code=400, detail=str(e))
 
     answer = "".join(tokens)
-    sources = chat_service.get_sources(body.question, topic=body.topic)
+    sources = await chat_service.get_sources(body.question, topic=body.topic)
 
     return ChatResponseDTO(
         answer=answer,
@@ -152,7 +152,7 @@ async def _chat_query_sync_agentic(body: ChatRequestDTO, session_id: str, curren
 
     meta = pipeline.get_last_retrieval_meta()
     answer = "".join(tokens)
-    sources = pipeline.get_sources(body.question, topic=body.topic)
+    sources = await pipeline.get_sources(body.question, topic=body.topic)
 
     return ChatResponseDTO(
         answer=answer,
