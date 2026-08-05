@@ -20,6 +20,7 @@ sub_questions 支援（複合問題）：
 """
 from __future__ import annotations
 
+import asyncio
 import os
 from dataclasses import dataclass
 from typing import AsyncIterator, Optional
@@ -28,6 +29,7 @@ from langchain.memory import ConversationBufferWindowMemory
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from loguru import logger
 
+from ..core.async_utils import run_blocking
 from ..core.llm_factory import build_llm, build_fast_llm
 from ..core.tracing import langfuse_trace_id_var, langfuse_client
 from ..ingestion.embedder import EmbeddingService
@@ -120,7 +122,15 @@ class AgenticRAGPipeline:
         if getattr(self, "_use_graph_retrieval", False):
             context, results, meta = await self._retrieve_graph(question, sub_questions)
         else:
-            context, results, meta = self._retrieve(question, sub_questions)
+            # _retrieve() 是完全同步的 Self-Reflection Loop（embed + Milvus
+            # search + LLM relevance-check/rewrite，最多 MAX_ITERATIONS 輪），
+            # 複合問題／多政策比對時單輪耗時可能達數秒到數十秒。整個呼叫必須
+            # 卸載到 thread pool，否則會鎖死 event loop，連 /health 都會被
+            # 一起卡住（其他請求根本排不進來，而不是等太久）。
+            # 用 asyncio.to_thread 而非 run_in_executor：_retrieve() 內部會讀
+            # langfuse_trace_id_var（contextvar），to_thread 會自動複製當前
+            # context 到子執行緒，run_in_executor 則不會，會讓 trace 斷鏈。
+            context, results, meta = await asyncio.to_thread(self._retrieve, question, sub_questions)
         self._last_meta = meta
 
         history = self._memory.load_memory_variables({}).get("history", "")
@@ -145,10 +155,14 @@ class AgenticRAGPipeline:
         """回傳最近一次 query() 的 retrieval metadata。"""
         return self._last_meta
 
-    def get_sources(self, question: str, topic: str | None = None) -> list[dict]:
-        """取得問題的相關來源（不生成回答）。"""
-        embedding = self._embedder.embed_query(question)
-        results = self._search.search(question, embedding, topic=topic)
+    async def get_sources(self, question: str, topic: str | None = None) -> list[dict]:
+        """取得問題的相關來源（不生成回答）。
+
+        embed_query 與 search 皆為同步、會打外部系統（Ollama / Milvus）的
+        阻塞呼叫，卸載到 thread pool 避免阻塞 event loop。
+        """
+        embedding = await run_blocking(self._embedder.embed_query, question)
+        results = await run_blocking(self._search.search, question, embedding, topic=topic)
         return [
             {
                 "source": r.source,

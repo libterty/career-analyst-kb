@@ -8,7 +8,6 @@
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import time
 from collections import OrderedDict
@@ -73,6 +72,7 @@ from langchain.memory import ConversationBufferWindowMemory
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from loguru import logger
 
+from src.core.async_utils import run_blocking
 from src.core.domain.search_result import SearchResult
 from src.core.interfaces.query_enhancer import IQueryEnhancer
 from src.core.interfaces.repository import IChatSessionRepository
@@ -210,9 +210,7 @@ class ChatService:
 
             # 2.5 語意快取查詢（有命中則直接串流回傳，跳過搜索與 LLM）
             # 預先計算 embedding，供 cache lookup 與後續向量搜索共用，避免重複呼叫
-            query_embedding = await asyncio.get_running_loop().run_in_executor(
-                None, self._embed_query, enhanced_query
-            )
+            query_embedding = await run_blocking(self._embed_query, enhanced_query)
             if self._semantic_cache is not None:
                 cached = await self._semantic_cache.lookup(enhanced_query, query_embedding)
                 if cached is not None:
@@ -243,6 +241,9 @@ class ChatService:
                 except Exception:
                     pass
 
+            # _search_engine.search() 是同步呼叫（內部打 Milvus），務必卸載到
+            # thread pool，避免在單一 event loop 的 uvicorn worker 上阻塞其他
+            # 所有並發請求（含 /health）。
             if lf:
                 with lf.start_as_current_observation(
                     name="rag-retrieve",
@@ -250,11 +251,15 @@ class ChatService:
                     trace_context=trace_ctx,
                     input={"question": enhanced_query},
                 ) as obs:
-                    results = self._search_engine.search(enhanced_query, query_embedding, topic=topic)
+                    results = await run_blocking(
+                        self._search_engine.search, enhanced_query, query_embedding, topic=topic
+                    )
                     obs.update(output={"chunk_count": len(results)})
                 lf.flush()
             else:
-                results = self._search_engine.search(enhanced_query, query_embedding, topic=topic)
+                results = await run_blocking(
+                    self._search_engine.search, enhanced_query, query_embedding, topic=topic
+                )
 
             # 4. 組裝 Context
             context = self._build_context(results)
@@ -325,11 +330,15 @@ class ChatService:
         """注入語意快取服務（啟動後可動態設定）。"""
         self._semantic_cache = cache
 
-    def get_sources(self, question: str, topic: str | None = None) -> list[dict]:
-        """取得問題的相關典籍來源（不執行 LLM）。"""
+    async def get_sources(self, question: str, topic: str | None = None) -> list[dict]:
+        """取得問題的相關典籍來源（不執行 LLM）。
+
+        embed_query 與 search 皆為同步、會打外部系統（Ollama / Milvus）的
+        阻塞呼叫，卸載到 thread pool，避免阻塞 event loop。
+        """
         enhanced_query = self._query_enhancer.enhance_query(question)
-        query_embedding = self._embed_query(enhanced_query)
-        results = self._search_engine.search(enhanced_query, query_embedding, topic=topic)
+        query_embedding = await run_blocking(self._embed_query, enhanced_query)
+        results = await run_blocking(self._search_engine.search, enhanced_query, query_embedding, topic=topic)
         return [
             {
                 "source": r.source,

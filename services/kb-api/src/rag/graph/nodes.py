@@ -16,6 +16,7 @@ from typing import Any
 
 from loguru import logger
 
+from src.core.async_utils import run_blocking
 from src.core.domain.search_result import SearchResult
 from src.rag.relevance_checker import RelevanceChecker
 from src.rag.query_rewriter import QueryRewriter
@@ -49,9 +50,11 @@ async def retrieve_node(
     結果由呼叫端的 merge_chunks_node 統一寫回 state，避免平行寫入衝突
     （見 docs/graph-design/graph-state-schema.md「平行 Node 如何合併 State」）。
     """
-    loop = asyncio.get_running_loop()
-    embedding = await loop.run_in_executor(None, embedder.embed_query, query)
-    return search_engine.search(query, embedding, topic=topic)
+    embedding = await run_blocking(embedder.embed_query, query)
+    # search_engine.search() 是同步呼叫（打 Milvus），同樣要卸載到 thread
+    # pool，否則會鎖死 event loop（同一個問題也存在於非 Graph 模式的
+    # ChatService / AgenticRAGPipeline，已一併修正）。
+    return await run_blocking(search_engine.search, query, embedding, topic=topic)
 
 
 async def fanout_retrieve_node(
@@ -109,7 +112,9 @@ async def relevance_check_node(
     relevance_checker: RelevanceChecker,
 ) -> dict[str, Any]:
     """委派既有 RelevanceChecker.check()；不在此層重試（既有物件內部已有 fallback）。"""
-    result = relevance_checker.check(state.question, list(state.chunk_pool))
+    # RelevanceChecker.check() 內部是同步的 LLM invoke，卸載到 thread pool
+    # 避免阻塞 event loop。
+    result = await run_blocking(relevance_checker.check, state.question, list(state.chunk_pool))
     return {
         "relevance_sufficient": result.sufficient,
         "missing_aspects": tuple(result.missing_aspects),
@@ -122,7 +127,9 @@ async def rewrite_query_node(
     query_rewriter: QueryRewriter,
 ) -> dict[str, Any]:
     """委派既有 QueryRewriter.rewrite()；retry_count 單向遞增。"""
-    rewritten = query_rewriter.rewrite(state.question, list(state.missing_aspects))
+    # QueryRewriter.rewrite() 內部是同步的 LLM invoke（+ embedding 相似度檢查），
+    # 卸載到 thread pool 避免阻塞 event loop。
+    rewritten = await run_blocking(query_rewriter.rewrite, state.question, list(state.missing_aspects))
     return {
         "normalized_input": rewritten,
         "retry_count": state.retry_count + 1,
